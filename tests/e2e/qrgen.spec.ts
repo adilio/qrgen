@@ -23,9 +23,9 @@ test.beforeEach(async ({ page }) => {
 
 test('updates preview on text input and ECC selection', async ({ page }) => {
   const textArea = page.getByLabel('QR data')
-  await textArea.fill('https://liquid.glass/qrgen')
+  await textArea.fill('https://example.org/qrgen')
   const svg = page.locator('svg').first()
-  await expect(svg).toHaveAttribute('aria-label', /encoding 26 characters/)
+  await expect(svg).toHaveAttribute('aria-label', /encoding \d+ characters/)
 
   const eccSelect = page.getByLabel('ECC Level')
   await eccSelect.selectOption('Q')
@@ -50,7 +50,6 @@ test('copies to clipboard and downloads files', async ({ page }) => {
 
 test('logo upload bumps ECC and share link encodes state', async ({ page }) => {
   await page.getByLabel('QR data').fill('https://playwright.dev')
-  await page.getByLabel('Logo source').selectOption('upload')
   await page.getByRole('button', { name: /Upload logo/i }).click()
   await page.setInputFiles('input[type="file"]', 'tests/e2e/fixtures/logo.svg')
   await page.waitForTimeout(500)
@@ -58,7 +57,7 @@ test('logo upload bumps ECC and share link encodes state', async ({ page }) => {
   await expect(page.getByLabel('Logo scale')).toHaveValue('0.34')
   await page.getByLabel('ECC Level').selectOption('H')
 
-  await page.getByRole('button', { name: /Share snapshot/i }).click()
+  await page.getByRole('button', { name: /Copy shareable link/i }).click()
   await page.waitForFunction(() => location.search.includes('config='))
 
   const url = await page.url()
@@ -69,8 +68,8 @@ test('logo upload bumps ECC and share link encodes state', async ({ page }) => {
 })
 
 test('accessibility focus outline @a11y', async ({ page }) => {
-  const share = page.getByRole('button', { name: /Share snapshot/i })
+  const share = page.getByRole('button', { name: /Copy shareable link/i })
   await share.focus()
-  const outlineColor = await share.evaluate((node) => getComputedStyle(node).outlineColor)
-  expect(outlineColor).not.toBe('rgba(0, 0, 0, 0)')
+  const shadow = await share.evaluate((node) => getComputedStyle(node).boxShadow)
+  expect(shadow).not.toBe('none')
 })

@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import GlassCard from '@/components/GlassCard'
+import { useEffect, useRef, useState } from 'react'
+import PanelCard from '@/components/PanelCard'
 import QREditor from '@/components/QREditor'
 import QRPreview from '@/components/QRPreview'
 import ExportPanel from '@/components/ExportPanel'
 import type { QRSettings, QRCodeInstance } from '@/lib/qrcode'
 import { defaultSettings, createQrCodeInstance, updateQrCodeInstance } from '@/lib/qrcode'
-import { applyPreset, PRESETS } from '@/lib/presets'
-import { useDebouncedValue, usePrefersReducedMotion } from '@/lib/hooks'
+import { useDebouncedValue } from '@/lib/hooks'
 import type { ExportFormat } from '@/lib/export'
 import { copyQrToClipboard, downloadQr } from '@/lib/export'
 import { decodeSettingsFromCurrentUrl, encodeSettingsToUrl } from '@/lib/urlState'
@@ -26,17 +25,12 @@ type ExportFeedback = {
 
 const cloneSettings = (settings: QRSettings): QRSettings => ({
   ...settings,
-  gradient: { ...settings.gradient },
   logo: { ...settings.logo },
 })
 
 const mergeWithDefaults = (incoming: QRSettings): QRSettings => ({
   ...defaultSettings,
   ...incoming,
-  gradient: {
-    ...defaultSettings.gradient,
-    ...incoming.gradient,
-  },
   logo: {
     ...defaultSettings.logo,
     ...incoming.logo,
@@ -57,7 +51,6 @@ const App = () => {
   const [logoWarning, setLogoWarning] = useState<string | null>(null)
   const [shareBusy, setShareBusy] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const prefersReducedMotion = usePrefersReducedMotion()
 
   const [previewNode, setPreviewNode] = useState<HTMLDivElement | null>(null)
   const qrInstanceRef = useRef<QRCodeInstance | null>(null)
@@ -82,11 +75,6 @@ const App = () => {
   }, [theme])
 
   useEffect(() => {
-    if (!prefersReducedMotion) return
-    setSettings((current) => (current.animateSheen ? { ...current, animateSheen: false } : current))
-  }, [prefersReducedMotion])
-
-  useEffect(() => {
     if (!previewNode || !qrInstanceRef.current) return
     previewNode.innerHTML = ''
     qrInstanceRef.current.append(previewNode)
@@ -102,64 +90,6 @@ const App = () => {
       svg.setAttribute('aria-label', `QR code encoding ${debouncedSettings.text.length} characters`)
     }
   }, [debouncedSettings, previewNode])
-
-  const {
-    logo: { cornerRadius, mode: logoMode, rawDataUrl, externalUrl },
-  } = settings
-
-  const ensureHighEcc = (candidate: QRSettings, notify = true) => {
-    const hasImage =
-      candidate.logo.mode !== 'none' &&
-      (candidate.logo.mode === 'upload'
-        ? Boolean(candidate.logo.rawDataUrl)
-        : Boolean(candidate.logo.externalUrl))
-    if (hasImage && candidate.logo.scale > 0.26 && candidate.ecc !== 'H') {
-      if (notify) {
-        setShareFeedback({
-          message: 'ECC bumped to “H” to protect the embedded logo.',
-          tone: 'warning',
-        })
-      }
-      const adjusted: QRSettings = {
-        ...candidate,
-        ecc: 'H',
-        presetKey: null,
-      }
-      return adjusted
-    }
-    return candidate
-  }
-
-  useEffect(() => {
-    if (logoMode === 'none') return
-    const source = logoMode === 'upload' ? rawDataUrl : externalUrl
-    if (!source) return
-    let active = true
-    withRoundedCorners(source, cornerRadius).then((processed) => {
-      if (!active || !processed) return
-      setSettings((current) => {
-        if (current.logo.mode === 'none') return current
-        if (current.logo.cornerRadius !== cornerRadius) return current
-        if (current.logo.mode === 'upload' && current.logo.rawDataUrl !== source) return current
-        if (current.logo.mode === 'external' && current.logo.externalUrl !== source) return current
-        if (processed === current.logo.processedDataUrl) return current
-        return {
-          ...current,
-          logo: {
-            ...current.logo,
-            processedDataUrl: processed,
-          },
-        }
-      })
-    })
-    return () => {
-      active = false
-    }
-  }, [cornerRadius, logoMode, rawDataUrl, externalUrl])
-
-  useEffect(() => {
-    setSettings((current) => ensureHighEcc(current, false))
-  }, [logoMode, rawDataUrl, externalUrl, settings.logo.scale])
 
   useEffect(() => {
     if (!hydrated) return
@@ -181,12 +111,20 @@ const App = () => {
     return () => window.clearTimeout(timeout)
   }, [exportFeedback])
 
+  useEffect(() => {
+    if (settings.logo.mode === 'upload' && settings.logo.scale > 0.26 && settings.ecc !== 'H') {
+      setLogoWarning('Large logos scan best with ECC level “H”. Consider switching before export.')
+    } else {
+      setLogoWarning(null)
+    }
+  }, [settings.logo.mode, settings.logo.scale, settings.ecc])
+
   const handleSettingsChange = (updater: (current: QRSettings) => QRSettings) => {
     setSettings((current) => {
       const draft = cloneSettings(current)
-      const next = ensureHighEcc(cloneSettings(updater(draft)))
+      const next = cloneSettings(updater(draft))
       if (next.logo.mode === 'none') {
-        next.logo.rawDataUrl = undefined
+        next.logo.originalDataUrl = undefined
         next.logo.processedDataUrl = undefined
       }
       return next
@@ -197,11 +135,6 @@ const App = () => {
     setTheme((mode) => (mode === 'dark' ? 'light' : 'dark'))
   }
 
-  const handlePresetFromComponent = (preset: (typeof PRESETS)[number]) => {
-    setSettings((current) => applyPreset(cloneSettings(current), preset))
-    setShareFeedback({ message: `${preset.name} preset applied.`, tone: 'success' })
-  }
-
   const processLogoWithRadius = async (rawData: string, cornerRadius: number) =>
     withRoundedCorners(rawData, cornerRadius)
 
@@ -209,59 +142,18 @@ const App = () => {
     try {
       const rawData = await fileToDataUrl(file)
       const processed = await processLogoWithRadius(rawData, settings.logo.cornerRadius)
-      setSettings((current) =>
-        ensureHighEcc({
-          ...current,
-          logo: {
-            ...current.logo,
-            mode: 'upload',
-            rawDataUrl: rawData,
-            processedDataUrl: processed,
-          },
-          presetKey: null,
-        }),
-      )
-      setLogoWarning(null)
-    } catch (error) {
-      console.error(error)
-      setLogoWarning('Unable to embed logo. Please try a smaller image or different format.')
-    }
-  }
-
-  const handleLogoExternalChange = async (url: string) => {
-    if (!url) {
       setSettings((current) => ({
         ...current,
         logo: {
           ...current.logo,
-          mode: 'none',
-          externalUrl: '',
-          rawDataUrl: undefined,
-          processedDataUrl: undefined,
+          mode: 'upload',
+          originalDataUrl: rawData,
+          processedDataUrl: processed,
         },
       }))
-      return
-    }
-    try {
-      const processed = await processLogoWithRadius(url, settings.logo.cornerRadius)
-      setSettings((current) =>
-        ensureHighEcc({
-          ...current,
-          logo: {
-            ...current.logo,
-            mode: 'external',
-            externalUrl: url,
-            processedDataUrl: processed,
-          },
-          presetKey: null,
-        }),
-      )
-      setLogoWarning(null)
     } catch (error) {
       console.error(error)
-      setLogoWarning(
-        'We could not process that URL. Check CORS headers or download and upload the image instead.',
-      )
+      setLogoWarning('Unable to embed logo. Please try a smaller image or different format.')
     }
   }
 
@@ -271,30 +163,27 @@ const App = () => {
       logo: {
         ...current.logo,
         mode: 'none',
-        externalUrl: '',
-        rawDataUrl: undefined,
+        originalDataUrl: undefined,
         processedDataUrl: undefined,
       },
     }))
-    setLogoWarning(null)
-  }
-
-  const handleAnimateSheenChange = (value: boolean) => {
-    if (prefersReducedMotion && value) return
-    setSettings((current) => ({ ...current, animateSheen: value }))
   }
 
   const handleShare = async () => {
     try {
       setShareBusy(true)
-      if (!navigator.clipboard) {
-        setShareFeedback({ message: 'Clipboard unavailable in this browser.', tone: 'error' })
-        return
-      }
       const url = encodeSettingsToUrl(settings)
       if (!url) return
+      window.history.replaceState({}, '', url)
+      if (!navigator.clipboard) {
+        setShareFeedback({
+          message: 'Link ready in the address bar. Clipboard is unavailable in this browser.',
+          tone: 'warning',
+        })
+        return
+      }
       await navigator.clipboard.writeText(url.toString())
-      setShareFeedback({ message: 'Sharable link copied to clipboard.', tone: 'success' })
+      setShareFeedback({ message: 'Shareable link copied to clipboard.', tone: 'success' })
     } catch (error) {
       console.error(error)
       setShareFeedback({ message: 'Share failed. Check clipboard permissions.', tone: 'error' })
@@ -342,31 +231,24 @@ const App = () => {
     }
   }
 
-  const shareFeedbackMemo = useMemo(() => shareFeedback, [shareFeedback])
-
   return (
-    <div className="min-h-screen px-4 py-10 text-slate-100 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-10">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 lg:flex-row">
-        <GlassCard sheen={settings.animateSheen && !prefersReducedMotion} className="flex-1">
+        <PanelCard className="flex-1">
           <QREditor
             settings={settings}
             onSettingsChange={handleSettingsChange}
-            onApplyPreset={handlePresetFromComponent}
             theme={theme}
             onThemeToggle={handleThemeToggle}
             onLogoUpload={handleLogoUpload}
-            onLogoExternalChange={handleLogoExternalChange}
             onLogoClear={handleLogoClear}
             shareBusy={shareBusy}
             onShare={handleShare}
-            shareFeedback={shareFeedbackMemo}
-            animateSheen={settings.animateSheen}
-            onAnimateSheenChange={handleAnimateSheenChange}
-            reducedMotionLocked={prefersReducedMotion}
+            shareFeedback={shareFeedback}
             logoWarning={logoWarning}
           />
-        </GlassCard>
-        <GlassCard sheen={settings.animateSheen && !prefersReducedMotion} className="flex-1">
+        </PanelCard>
+        <PanelCard className="flex-1">
           <div className="flex flex-col gap-8">
             <QRPreview
               onContainerReady={setPreviewNode}
@@ -381,7 +263,7 @@ const App = () => {
               statusTone={exportFeedback?.tone ?? 'success'}
             />
           </div>
-        </GlassCard>
+        </PanelCard>
       </div>
     </div>
   )

@@ -1,14 +1,14 @@
-# Liquid Glass QR Generator
+# QR Generator
 
-A playful, glassmorphic QR code creator built with Vite, React, and TypeScript. Tune gradients, embed logos, toggle module styles, and export crisp codes that run fully on GitHub Pages.
+A lightweight QR code generator built with Vite, React, and TypeScript. Edit the text, tweak size and colors, optionally embed a logo, and export ready-to-share PNG/JPG/SVG/WEBP files.
 
 ## Highlights
 
-- **Liquid glass UI** with animated sheen, light/dark themes, and reduced-motion awareness.
-- **Real-time preview** with controls for size, margin, ECC, gradients, module shapes, and finder eyes.
-- **Logo embedding** that auto-bumps ECC when coverage is risky and supports uploads or external URLs.
-- **One-click exports** to PNG, JPG, SVG, WEBP, plus clipboard copy with configurable resolution and transparency.
-- **Stateful sharing** via encoded URLs so collaborators can reproduce presets instantly.
+- Clean, distraction-free interface with light/dark theme toggle.
+- Live preview that reflects text, size, margin, color, and ECC changes immediately.
+- Optional logo upload with scale and corner-radius controls.
+- One-click exports (PNG/JPG/SVG/WEBP) plus clipboard copy with configurable resolution.
+- Shareable URLs by encoding the current settings into the query string.
 
 ## Getting Started
 
@@ -18,42 +18,38 @@ npx playwright install    # once, to download browser engines
 npm run dev               # start Vite on http://localhost:5173
 ```
 
-Key commands:
+Key scripts:
 
-- `npm run build` – type-check and bundle for GitHub Pages (`dist/`).
+- `npm run build` – type-check and create the production bundle in `dist/`.
 - `npm run preview` – serve the production build locally.
-- `npm run lint` / `npm run format` – enforce ESLint + Prettier standards.
-- `npm run test:e2e` – Playwright smoke tests across Chromium, Firefox, WebKit.
-- `npm run check:accessibility` – focused accessibility assertions tagged with `@a11y`.
+- `npm run lint` / `npm run format` – run ESLint and Prettier.
+- `npm run test:e2e` – Playwright smoke tests across Chromium, Firefox, and WebKit.
+- `npm run check:accessibility` – execute accessibility-tagged Playwright cases.
 
 ## Project Structure
 
 ```
 ├─ src/
-│  ├─ App.tsx               # Composition of editor, preview, and export panels
-│  ├─ components/           # GlassCard, QREditor, QRPreview, ExportPanel
-│  ├─ lib/                  # QR helpers, export utilities, presets, URL/state helpers
-│  ├─ styles/globals.css    # Tailwind layers + liquid glass theming
+│  ├─ App.tsx               # Orchestrates editor, preview, and export panels
+│  ├─ components/           # PanelCard, QREditor, QRPreview, ExportPanel
+│  ├─ lib/                  # QR helpers, export utilities, URL/state helpers
+│  ├─ styles/globals.css    # Base styles and Tailwind layers
 │  └─ main.tsx              # Vite bootstrap
 ├─ tests/e2e/               # Playwright specs & fixtures
-├─ playwright.config.ts     # Test runner configuration
-└─ tailwind.config.js       # Theme tokens and glassy shadows
+├─ playwright.config.ts     # Cross-browser Playwright configuration
+└─ tailwind.config.js       # Theme tokens and Tailwind plugins
 ```
 
-## Deployment Notes
+## Deployment
 
-1. Ensure `vite.config.ts` `base` matches your GitHub Pages path (`/<repo>/`). Set `VITE_BASE_PATH` in the publish workflow for custom domains.
-2. Run `npm run build`; deploy the `dist/` output via GitHub Pages or a static host.
-3. Add `CNAME` (if using a custom domain) to `public/` before building so Vite copies it across.
-4. Verify clipboard and download flows in Safari and Chrome—both are covered by automated tests but real devices are recommended.
+1. GitHub Actions workflow (`.github/workflows/deploy.yml`) builds on every push to `main` and publishes `dist/` to Pages.
+2. Ensure `VITE_BASE_PATH` matches the repository slug in the workflow (set automatically in the provided file).
+3. For custom domains, add a `CNAME` file under `public/` prior to building.
 
-## Accessibility & Performance
+## Accessibility & Tips
 
-- All inputs are label-linked, keyboard navigable, and announce preview updates through `aria-live`.
-- Color contrast guidance warns when gradients reduce scannability.
-- Animations automatically disable when `prefers-reduced-motion` is set.
-- QR updates are debounced to balance responsiveness with rendering cost; export routines spawn transient instances to keep the bundle small.
+- All form controls have explicit labels and keyboard focus states.
+- Transparent background toggle helps compose QR codes over other assets.
+- Keep ECC at “H” when a logo covers a large portion of the code for best scanning reliability.
 
-## Credits
-
-Released under the MIT License. Built for contributors who want a fast, beautiful QR sandbox that stays static-friendly on GitHub Pages.
+Released under the MIT License.

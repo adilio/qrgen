@@ -2,7 +2,7 @@
   "name": "qrgen",
   "private": true,
   "version": "0.1.0",
-  "description": "Liquid Glass QR code generator for GitHub Pages",
+  "description": "QR code generator for GitHub Pages",
   "type": "module",
   "scripts": {
     "dev": "vite",

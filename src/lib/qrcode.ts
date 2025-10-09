@@ -1,30 +1,14 @@
 import QRCodeStyling from 'qr-code-styling'
-import type { CornerSquareType, CornerDotType } from 'qr-code-styling'
+import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling'
 
 export type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H'
 
-export type DotStyle = 'square' | 'dots' | 'rounded' | 'extra-rounded'
-
-export type EyeStyle = 'square' | 'dot' | 'rounded'
-
-export type GradientType = 'linear' | 'radial'
-
-export interface GradientConfig {
-  enabled: boolean
-  type: GradientType
-  rotation: number // degrees for UI, converted to radians for the renderer
-  start: string
-  end: string
-}
-
 export interface LogoConfig {
-  mode: 'none' | 'upload' | 'external'
-  rawDataUrl?: string
+  mode: 'none' | 'upload'
+  originalDataUrl?: string
   processedDataUrl?: string
-  externalUrl?: string
-  crossOrigin: 'anonymous' | 'use-credentials' | 'none'
   scale: number // 0-1 ratio representing imageSize
-  cornerRadius: number // percentage 0-50 (we clamp when rendering)
+  cornerRadius: number // percentage 0-40
 }
 
 export interface QRSettings {
@@ -32,54 +16,36 @@ export interface QRSettings {
   size: number
   margin: number
   ecc: ErrorCorrectionLevel
-  dotStyle: DotStyle
-  eyeStyle: EyeStyle
   foregroundColor: string
   backgroundColor: string
-  gradient: GradientConfig
   transparentBackground: boolean
-  presetKey: string | null
   logo: LogoConfig
-  animateSheen: boolean
 }
 
 export type QRCodeInstance = QRCodeStyling
 
 export const ECC_LEVELS: ErrorCorrectionLevel[] = ['L', 'M', 'Q', 'H']
 
-export const DOT_STYLES: DotStyle[] = ['square', 'dots', 'rounded', 'extra-rounded']
-
-export const EYE_STYLES: EyeStyle[] = ['square', 'dot', 'rounded']
-
 export const defaultSettings: QRSettings = {
   text: 'https://example.com',
   size: 320,
   margin: 16,
   ecc: 'M',
-  dotStyle: 'rounded',
-  eyeStyle: 'rounded',
-  foregroundColor: '#1f5bff',
+  foregroundColor: '#1f2937',
   backgroundColor: '#ffffff',
-  gradient: {
-    enabled: true,
-    type: 'linear',
-    rotation: 35,
-    start: '#7b5cff',
-    end: '#00d8ff',
-  },
   transparentBackground: false,
-  presetKey: 'liquid-lavender',
   logo: {
     mode: 'none',
-    rawDataUrl: undefined,
+    originalDataUrl: undefined,
     processedDataUrl: undefined,
-    externalUrl: '',
-    crossOrigin: 'anonymous',
-    scale: 0.22,
-    cornerRadius: 18,
+    scale: 0.2,
+    cornerRadius: 12,
   },
-  animateSheen: true,
 }
+
+const DEFAULT_DOT_STYLE: DotType = 'rounded'
+const DEFAULT_CORNER_SQUARE_STYLE: CornerSquareType = 'extra-rounded'
+const DEFAULT_CORNER_DOT_STYLE: CornerDotType = 'dot'
 
 export interface BuildOptionsInput {
   settings: QRSettings
@@ -87,53 +53,19 @@ export interface BuildOptionsInput {
   transparentBackgroundOverride?: boolean
 }
 
-const gradientToRenderer = (gradient: GradientConfig) => ({
-  type: gradient.type,
-  rotation: (gradient.rotation * Math.PI) / 180,
-  colorStops: [
-    { offset: 0, color: gradient.start },
-    { offset: 1, color: gradient.end },
-  ],
-})
-
-const maybeGradient = (gradient: GradientConfig, fallbackColor: string) =>
-  gradient.enabled ? { gradient: gradientToRenderer(gradient) } : { color: fallbackColor }
-
-const resolveEyeSquareType = (eyeStyle: EyeStyle): CornerSquareType => {
-  if (eyeStyle === 'rounded') return 'extra-rounded'
-  if (eyeStyle === 'dot') return 'square'
-  return 'square'
-}
-
-const resolveEyeDotType = (eyeStyle: EyeStyle): CornerDotType => {
-  if (eyeStyle === 'dot') return 'dot'
-  if (eyeStyle === 'rounded') return 'extra-rounded'
-  return 'square'
-}
-
 export const buildQRCodeOptions = ({
   settings,
   sizeOverride,
   transparentBackgroundOverride,
 }: BuildOptionsInput) => {
-  const { gradient, foregroundColor, backgroundColor } = settings
   const width = sizeOverride ?? settings.size
   const height = sizeOverride ?? settings.size
   const isTransparent = transparentBackgroundOverride ?? settings.transparentBackground
 
-  const dotsOptions = {
-    type: settings.dotStyle,
-    ...maybeGradient(gradient, foregroundColor),
-  }
-
-  const cornersColorProps = gradient.enabled
-    ? { gradient: gradientToRenderer(gradient) }
-    : { color: foregroundColor }
-
   const backgroundOptions = isTransparent
     ? { color: 'transparent' }
     : {
-        color: backgroundColor,
+        color: settings.backgroundColor,
       }
 
   const image = resolveImage(settings.logo)
@@ -147,14 +79,17 @@ export const buildQRCodeOptions = ({
     qrOptions: {
       errorCorrectionLevel: settings.ecc,
     },
-    dotsOptions,
+    dotsOptions: {
+      type: DEFAULT_DOT_STYLE,
+      color: settings.foregroundColor,
+    },
     cornersSquareOptions: {
-      type: resolveEyeSquareType(settings.eyeStyle),
-      ...cornersColorProps,
+      type: DEFAULT_CORNER_SQUARE_STYLE,
+      color: settings.foregroundColor,
     },
     cornersDotOptions: {
-      type: resolveEyeDotType(settings.eyeStyle),
-      ...cornersColorProps,
+      type: DEFAULT_CORNER_DOT_STYLE,
+      color: settings.foregroundColor,
     },
     backgroundOptions,
     image,
@@ -163,13 +98,8 @@ export const buildQRCodeOptions = ({
 }
 
 const resolveImage = (logo: LogoConfig) => {
-  if (logo.mode === 'upload') {
-    return logo.processedDataUrl ?? logo.rawDataUrl ?? undefined
-  }
-  if (logo.mode === 'external') {
-    return logo.processedDataUrl ?? (logo.externalUrl || undefined)
-  }
-  return undefined
+  if (logo.mode !== 'upload') return undefined
+  return logo.processedDataUrl ?? logo.originalDataUrl ?? undefined
 }
 
 const buildImageOptions = (logo: LogoConfig, hasImage: boolean) => {
@@ -179,13 +109,12 @@ const buildImageOptions = (logo: LogoConfig, hasImage: boolean) => {
     }
   }
 
-  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.4)
+  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.35)
 
   return {
     hideBackgroundDots: false,
     imageSize,
     margin: 0,
-    ...(logo.crossOrigin === 'none' ? {} : { crossOrigin: logo.crossOrigin }),
   }
 }
 
@@ -196,9 +125,4 @@ export const updateQrCodeInstance = (instance: QRCodeInstance, settings: QRSetti
   instance.update(buildQRCodeOptions({ settings }))
 }
 
-export const qrSupportsLogo = (settings: QRSettings) => Boolean(resolveImage(settings.logo))
-
-export const isLogoCoverageRisky = (settings: QRSettings) => {
-  if (!qrSupportsLogo(settings)) return false
-  return settings.logo.scale > 0.26 && settings.ecc !== 'H'
-}
+export const qrSupportsLogo = (settings: QRSettings) => settings.logo.mode === 'upload'
