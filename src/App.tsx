@@ -26,6 +26,15 @@ type ExportFeedback = {
 const cloneSettings = (settings: QRSettings): QRSettings => ({
   ...settings,
   logo: { ...settings.logo },
+  style: {
+    ...settings.style,
+    gradient: settings.style.gradient
+      ? {
+          ...settings.style.gradient,
+          stops: settings.style.gradient.stops.map((stop) => ({ ...stop })),
+        }
+      : undefined,
+  },
 })
 
 const mergeWithDefaults = (incoming: QRSettings): QRSettings => ({
@@ -34,6 +43,18 @@ const mergeWithDefaults = (incoming: QRSettings): QRSettings => ({
   logo: {
     ...defaultSettings.logo,
     ...incoming.logo,
+  },
+  style: {
+    ...defaultSettings.style,
+    ...incoming.style,
+    gradient: (() => {
+      const source = incoming.style?.gradient ?? defaultSettings.style.gradient
+      if (!source) return undefined
+      return {
+        ...source,
+        stops: source.stops.map((stop) => ({ ...stop })),
+      }
+    })(),
   },
 })
 

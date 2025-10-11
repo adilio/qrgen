@@ -1,6 +1,28 @@
 import QRCodeStyling from 'qr-code-styling'
 import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling'
 
+export type FillMode = 'solid' | 'gradient'
+
+export interface GradientStop {
+  offset: number
+  color: string
+}
+
+export interface GradientConfig {
+  type: 'linear' | 'radial'
+  rotation?: number
+  stops: GradientStop[]
+}
+
+export interface StyleSettings {
+  presetId: string
+  dotType: DotType
+  cornerSquareType: CornerSquareType
+  cornerDotType: CornerDotType
+  fillMode: FillMode
+  gradient?: GradientConfig
+}
+
 export type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H'
 
 export interface LogoConfig {
@@ -20,6 +42,7 @@ export interface QRSettings {
   backgroundColor: string
   transparentBackground: boolean
   logo: LogoConfig
+  style: StyleSettings
 }
 
 export type QRCodeInstance = QRCodeStyling
@@ -40,6 +63,13 @@ export const defaultSettings: QRSettings = {
     processedDataUrl: undefined,
     scale: 0.2,
     cornerRadius: 12,
+  },
+  style: {
+    presetId: 'classic',
+    dotType: 'square',
+    cornerSquareType: 'square',
+    cornerDotType: 'square',
+    fillMode: 'solid',
   },
 }
 
@@ -70,6 +100,10 @@ export const buildQRCodeOptions = ({
 
   const image = resolveImage(settings.logo)
 
+  const dotsOptions = buildDotsOptions(settings)
+  const cornersSquareOptions = buildCornerSquareOptions(settings)
+  const cornersDotOptions = buildCornerDotOptions(settings)
+
   return {
     width,
     height,
@@ -79,23 +113,68 @@ export const buildQRCodeOptions = ({
     qrOptions: {
       errorCorrectionLevel: settings.ecc,
     },
-    dotsOptions: {
-      type: DEFAULT_DOT_STYLE,
-      color: settings.foregroundColor,
-    },
-    cornersSquareOptions: {
-      type: DEFAULT_CORNER_SQUARE_STYLE,
-      color: settings.foregroundColor,
-    },
-    cornersDotOptions: {
-      type: DEFAULT_CORNER_DOT_STYLE,
-      color: settings.foregroundColor,
-    },
+    dotsOptions,
+    cornersSquareOptions,
+    cornersDotOptions,
     backgroundOptions,
     image,
     imageOptions: buildImageOptions(settings.logo, Boolean(image)),
   }
 }
+
+const buildDotsOptions = (settings: QRSettings) => {
+  const dotType = settings.style?.dotType ?? DEFAULT_DOT_STYLE
+  if (settings.style?.fillMode === 'gradient' && settings.style.gradient) {
+    return {
+      type: dotType,
+      gradient: serializeGradient(settings.style.gradient),
+    }
+  }
+
+  return {
+    type: dotType,
+    color: settings.foregroundColor,
+  }
+}
+
+const buildCornerSquareOptions = (settings: QRSettings) => {
+  const type = settings.style?.cornerSquareType ?? DEFAULT_CORNER_SQUARE_STYLE
+  if (settings.style?.fillMode === 'gradient' && settings.style.gradient) {
+    return {
+      type,
+      gradient: serializeGradient(settings.style.gradient),
+    }
+  }
+
+  return {
+    type,
+    color: settings.foregroundColor,
+  }
+}
+
+const buildCornerDotOptions = (settings: QRSettings) => {
+  const type = settings.style?.cornerDotType ?? DEFAULT_CORNER_DOT_STYLE
+  if (settings.style?.fillMode === 'gradient' && settings.style.gradient) {
+    return {
+      type,
+      gradient: serializeGradient(settings.style.gradient),
+    }
+  }
+
+  return {
+    type,
+    color: settings.foregroundColor,
+  }
+}
+
+const serializeGradient = (gradient: GradientConfig) => ({
+  type: gradient.type,
+  rotation: gradient.rotation ?? 0,
+  colorStops: gradient.stops.map((stop) => ({
+    offset: stop.offset,
+    color: stop.color,
+  })),
+})
 
 const resolveImage = (logo: LogoConfig) => {
   if (logo.mode !== 'upload') return undefined
