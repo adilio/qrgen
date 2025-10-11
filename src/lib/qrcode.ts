@@ -109,10 +109,10 @@ const buildImageOptions = (logo: LogoConfig, hasImage: boolean) => {
     }
   }
 
-  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.35)
+  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.6)
 
   return {
-    hideBackgroundDots: false,
+    hideBackgroundDots: logo.scale > 0.4,
     imageSize,
     margin: 0,
   }

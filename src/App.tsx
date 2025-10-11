@@ -112,8 +112,8 @@ const App = () => {
   }, [exportFeedback])
 
   useEffect(() => {
-    if (settings.logo.mode === 'upload' && settings.logo.scale > 0.26 && settings.ecc !== 'H') {
-      setLogoWarning('Large logos scan best with ECC level “H”. Consider switching before export.')
+    if (settings.logo.mode === 'upload' && settings.logo.scale > 0.4 && settings.ecc !== 'H') {
+      setLogoWarning('Large logos scan best with ECC level "H". Consider switching before export.')
     } else {
       setLogoWarning(null)
     }
@@ -236,9 +236,6 @@ const App = () => {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:gap-10">
         <header className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-              Liquid glass studio
-            </p>
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">
               Build a QR that matches your brand
             </h1>
@@ -250,9 +247,18 @@ const App = () => {
           <button
             type="button"
             onClick={handleThemeToggle}
-            className="self-start rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
+            className="self-start rounded-full bg-white/70 p-3 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
-            {theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
+            {theme === 'dark' ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
           </button>
         </header>
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">

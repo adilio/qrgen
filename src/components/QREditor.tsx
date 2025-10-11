@@ -27,7 +27,7 @@ const SIZE_PRESETS = [
 
 type SizePresetId = (typeof SIZE_PRESETS)[number]['id']
 
-type AdvancedSection = 'dimensions' | 'logo'
+type AdvancedSection = 'dimensions'
 
 const QREditor = ({
   settings,
@@ -40,8 +40,6 @@ const QREditor = ({
   logoWarning,
 }: QREditorProps) => {
   const logoFileInputRef = useRef<HTMLInputElement | null>(null)
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [expandedSection, setExpandedSection] = useState<AdvancedSection>('dimensions')
 
   const handleTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const text = event.target.value
@@ -130,14 +128,6 @@ const QREditor = ({
     selectedPreset === 'custom'
       ? 'Custom'
       : SIZE_PRESETS.find((preset) => preset.id === selectedPreset)?.label ?? 'Custom'
-
-  const toggleAdvanced = () => {
-    setShowAdvanced((current) => !current)
-  }
-
-  const handleAccordionToggle = (section: AdvancedSection) => {
-    setExpandedSection(section)
-  }
 
   return (
     <div className="flex flex-col gap-8" aria-label="QR configuration panel">
@@ -237,144 +227,38 @@ const QREditor = ({
               Transparent background
             </span>
           </label>
-        </div>
-      </section>
 
-      <section className="space-y-4">
-        <button
-          type="button"
-          onClick={toggleAdvanced}
-          aria-expanded={showAdvanced}
-          aria-controls="advanced-options"
-          className="flex w-full items-center justify-between rounded-2xl bg-slate-100/80 px-5 py-4 text-left text-base font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          Advanced options
-          <svg
-            className={clsx('h-5 w-5 transition-transform', showAdvanced ? 'rotate-180' : '')}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {showAdvanced && (
-          <div
-            id="advanced-options"
-            className="space-y-6 rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80"
-          >
-            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200/70 pb-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:border-slate-800/60 dark:text-slate-500">
-              <button
-                type="button"
-                onClick={() => handleAccordionToggle('dimensions')}
-                className={clsx(
-                  'rounded-full px-3 py-1 text-xs transition',
-                  expandedSection === 'dimensions'
-                    ? 'bg-accent-500 text-white shadow shadow-accent-500/30'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
-                )}
-              >
-                Dimensions
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAccordionToggle('logo')}
-                className={clsx(
-                  'rounded-full px-3 py-1 text-xs transition',
-                  expandedSection === 'logo'
-                    ? 'bg-accent-500 text-white shadow shadow-accent-500/30'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
-                )}
-              >
-                Logo & safety
-              </button>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-medium text-slate-700 dark:text-slate-200">Add a logo</span>
+              {settings.logo.mode !== 'none' && (
+                <button
+                  type="button"
+                  onClick={onLogoClear}
+                  className="rounded-xl border border-slate-300/70 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-rose-400 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-slate-700/70 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  Clear logo
+                </button>
+              )}
             </div>
-
-            {expandedSection === 'dimensions' && (
-              <div className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      Fine-tune size ({settings.size}px)
-                    </span>
-                    <input
-                      type="range"
-                      min="160"
-                      max="512"
-                      step="8"
-                      value={settings.size}
-                      onChange={handleSizeChange}
-                      aria-valuemin={160}
-                      aria-valuemax={512}
-                      aria-valuenow={settings.size}
-                      aria-label="QR size"
-                      className="accent-accent-500"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      Quiet zone ({settings.margin}px)
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="64"
-                      step="2"
-                      value={settings.margin}
-                      onChange={handleMarginChange}
-                      aria-valuemin={0}
-                      aria-valuemax={64}
-                      aria-valuenow={settings.margin}
-                      aria-label="QR margin"
-                      className="accent-accent-500"
-                    />
-                  </label>
-                </div>
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Error correction</span>
-                  <select
-                    value={settings.ecc}
-                    onChange={handleEccChange}
-                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  >
-                    {ECC_LEVELS.map((level) => (
-                      <option key={level} value={level}>
-                        {level}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )}
-
-            {expandedSection === 'logo' && (
-              <div className="space-y-5">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={launchLogoPicker}
-                    className="flex-1 rounded-xl bg-accent-500 px-4 py-3 text-sm font-semibold text-white shadow shadow-accent-500/40 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
-                  >
-                    Upload logo
-                  </button>
-                  <input
-                    ref={logoFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={handleLogoFileChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={onLogoClear}
-                    className="rounded-xl border border-slate-300/70 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-400 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-slate-700/70 dark:bg-slate-900 dark:text-slate-200"
-                  >
-                    Clear
-                  </button>
-                </div>
-
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={launchLogoPicker}
+                className="flex-1 rounded-xl bg-accent-500 px-4 py-3 text-sm font-semibold text-white shadow shadow-accent-500/40 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+              >
+                {settings.logo.mode === 'none' ? 'Upload logo' : 'Change logo'}
+              </button>
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleLogoFileChange}
+              />
+            </div>
+            {settings.logo.mode !== 'none' && (
+              <div className="space-y-4 rounded-xl border border-slate-200/70 bg-white/90 p-4 dark:border-slate-800/60 dark:bg-slate-900/80">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                     Logo scale ({Math.round(settings.logo.scale * 100)}%)
@@ -382,12 +266,11 @@ const QREditor = ({
                   <input
                     type="range"
                     min="0.1"
-                    max="0.4"
+                    max="0.6"
                     step="0.01"
                     value={settings.logo.scale}
                     onChange={handleLogoScale}
-                    disabled={settings.logo.mode === 'none'}
-                    className="accent-accent-500 disabled:opacity-50"
+                    className="accent-accent-500"
                   />
                 </label>
 
@@ -402,8 +285,7 @@ const QREditor = ({
                     step="1"
                     value={settings.logo.cornerRadius}
                     onChange={handleLogoCornerRadius}
-                    disabled={settings.logo.mode === 'none'}
-                    className="accent-accent-500 disabled:opacity-50"
+                    className="accent-accent-500"
                   />
                 </label>
 
@@ -415,7 +297,75 @@ const QREditor = ({
               </div>
             )}
           </div>
-        )}
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+            Advanced
+          </span>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            Fine-tune your QR code
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Adjust dimensions, error correction, and other technical settings.
+          </p>
+        </header>
+        <div className="space-y-6 rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Fine-tune size ({settings.size}px)
+              </span>
+              <input
+                type="range"
+                min="160"
+                max="512"
+                step="8"
+                value={settings.size}
+                onChange={handleSizeChange}
+                aria-valuemin={160}
+                aria-valuemax={512}
+                aria-valuenow={settings.size}
+                aria-label="QR size"
+                className="accent-accent-500"
+              />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Quiet zone ({settings.margin}px)
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="64"
+                step="2"
+                value={settings.margin}
+                onChange={handleMarginChange}
+                aria-valuemin={0}
+                aria-valuemax={64}
+                aria-valuenow={settings.margin}
+                aria-label="QR margin"
+                className="accent-accent-500"
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Error correction</span>
+            <select
+              value={settings.ecc}
+              onChange={handleEccChange}
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              {ECC_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80">
