@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import clsx from 'clsx'
 import { ECC_LEVELS, type QRSettings } from '@/lib/qrcode'
+import { STYLE_PRESETS } from '@/lib/stylePresets'
 
 interface ShareFeedback {
   message: string
@@ -81,6 +82,51 @@ const QREditor = ({
     onSettingsChange((current) => ({ ...current, transparentBackground }))
   }
 
+  const applyStylePreset = (presetId: string) => {
+    const preset = STYLE_PRESETS.find((item) => item.id === presetId)
+    if (!preset) return
+
+    onSettingsChange((current) => ({
+      ...current,
+      foregroundColor: preset.foregroundColor ?? current.foregroundColor,
+      backgroundColor: preset.backgroundColor ?? current.backgroundColor,
+      style: {
+        ...current.style,
+        ...preset.style,
+        presetId: preset.id,
+        gradient: preset.style.gradient
+          ? {
+              ...preset.style.gradient,
+              stops: preset.style.gradient.stops.map((stop) => ({ ...stop })),
+            }
+          : undefined,
+      },
+    }))
+  }
+
+  const handleGradientTypeChange = (type: 'linear' | 'radial') => {
+    onSettingsChange((current) => {
+      if (current.style.fillMode !== 'gradient' || !current.style.gradient) {
+        return current
+      }
+
+      return {
+        ...current,
+        style: {
+          ...current.style,
+          gradient: {
+            ...current.style.gradient,
+            type,
+            rotation:
+              type === 'linear'
+                ? current.style.gradient.rotation ?? 45
+                : undefined,
+          },
+        },
+      }
+    })
+  }
+
   const launchLogoPicker = () => {
     logoFileInputRef.current?.click()
   }
@@ -127,6 +173,9 @@ const QREditor = ({
     selectedPreset === 'custom'
       ? 'Custom'
       : SIZE_PRESETS.find((preset) => preset.id === selectedPreset)?.label ?? 'Custom'
+
+  const selectedStylePreset =
+    STYLE_PRESETS.find((preset) => preset.id === settings.style.presetId) ?? STYLE_PRESETS[0]
 
   return (
     <div className="flex flex-col gap-8" aria-label="QR configuration panel">
@@ -213,6 +262,60 @@ const QREditor = ({
               </div>
             </label>
           </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-medium text-slate-700 dark:text-slate-200">Style presets</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                {selectedStylePreset.name}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {STYLE_PRESETS.map((preset) => {
+                const isActive = preset.id === settings.style.presetId
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => applyStylePreset(preset.id)}
+                    aria-pressed={isActive}
+                    className={clsx(
+                      'flex flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500',
+                      isActive
+                        ? 'border-accent-500 bg-accent-500/10 text-accent-600 dark:text-accent-300'
+                        : 'border-transparent bg-slate-100/80 text-slate-600 hover:border-slate-300 hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:border-slate-600',
+                    )}
+                  >
+                    <span className="text-sm font-semibold">{preset.name}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{preset.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {settings.style.fillMode === 'gradient' && settings.style.gradient && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Gradient style</span>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {(['linear', 'radial'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => handleGradientTypeChange(mode)}
+                    className={clsx(
+                      'flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500',
+                      settings.style.gradient?.type === mode
+                        ? 'border-accent-500 bg-accent-500/10 text-accent-600 dark:text-accent-300'
+                        : 'border-transparent bg-slate-100/80 text-slate-600 hover:border-slate-300 hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:border-slate-600',
+                    )}
+                  >
+                    {mode === 'linear' ? 'Linear gradient' : 'Radial gradient'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <label className="flex items-center gap-3 rounded-2xl bg-slate-100/80 px-5 py-4 shadow-inner ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
             <input
