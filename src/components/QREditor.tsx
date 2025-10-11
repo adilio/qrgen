@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import clsx from 'clsx'
 import { ECC_LEVELS, type QRSettings } from '@/lib/qrcode'
@@ -27,7 +27,6 @@ const SIZE_PRESETS = [
 
 type SizePresetId = (typeof SIZE_PRESETS)[number]['id']
 
-type AdvancedSection = 'dimensions'
 
 const QREditor = ({
   settings,
