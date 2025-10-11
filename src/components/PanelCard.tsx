@@ -9,12 +9,12 @@ const PanelCard = ({ children, className, ...divProps }: PanelCardProps) => (
   <div
     {...divProps}
     className={clsx(
-      'rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/70',
-      'supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-slate-900/60',
+      'rounded-3xl bg-white/80 p-8 shadow-lg shadow-slate-900/5 backdrop-blur-md transition-colors dark:bg-slate-900/75',
+      'supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-slate-900/65',
       className,
     )}
   >
-    <div className="flex flex-col gap-4">{children}</div>
+    <div className="flex flex-col gap-6">{children}</div>
   </div>
 )
 

@@ -232,38 +232,59 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-10">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 lg:flex-row">
-        <PanelCard className="flex-1">
-          <QREditor
-            settings={settings}
-            onSettingsChange={handleSettingsChange}
-            theme={theme}
-            onThemeToggle={handleThemeToggle}
-            onLogoUpload={handleLogoUpload}
-            onLogoClear={handleLogoClear}
-            shareBusy={shareBusy}
-            onShare={handleShare}
-            shareFeedback={shareFeedback}
-            logoWarning={logoWarning}
-          />
-        </PanelCard>
-        <PanelCard className="flex-1">
-          <div className="flex flex-col gap-8">
-            <QRPreview
-              onContainerReady={setPreviewNode}
-              settings={settings}
-              statusMessage={exportFeedback?.message}
-            />
-            <ExportPanel
-              onCopy={handleCopy}
-              onDownload={(options) => handleDownload(options)}
-              busyAction={busyAction}
-              statusMessage={exportFeedback?.message ?? null}
-              statusTone={exportFeedback?.tone ?? 'success'}
-            />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 px-4 py-8 text-slate-900 transition-colors dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100 sm:px-6 lg:px-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:gap-10">
+        <header className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Liquid glass studio
+            </p>
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">
+              Build a QR that matches your brand
+            </h1>
+            <p className="max-w-xl text-sm text-slate-600 dark:text-slate-400">
+              Tweak essentials up front and dive into advanced tweaks as needed. Every change updates the
+              preview instantly.
+            </p>
           </div>
-        </PanelCard>
+          <button
+            type="button"
+            onClick={handleThemeToggle}
+            className="self-start rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
+          >
+            {theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
+          </button>
+        </header>
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
+          <PanelCard className="order-2 lg:order-1">
+            <QREditor
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+              onLogoUpload={handleLogoUpload}
+              onLogoClear={handleLogoClear}
+              shareBusy={shareBusy}
+              onShare={handleShare}
+              shareFeedback={shareFeedback}
+              logoWarning={logoWarning}
+            />
+          </PanelCard>
+          <PanelCard className="order-1 lg:order-2">
+            <div className="flex flex-col gap-8">
+              <QRPreview
+                onContainerReady={setPreviewNode}
+                settings={settings}
+                statusMessage={exportFeedback?.message}
+              />
+              <ExportPanel
+                onCopy={handleCopy}
+                onDownload={(options) => handleDownload(options)}
+                busyAction={busyAction}
+                statusMessage={exportFeedback?.message ?? null}
+                statusTone={exportFeedback?.tone ?? 'success'}
+              />
+            </div>
+          </PanelCard>
+        </div>
       </div>
     </div>
   )

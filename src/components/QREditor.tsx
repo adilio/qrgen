@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import clsx from 'clsx'
 import { ECC_LEVELS, type QRSettings } from '@/lib/qrcode'
@@ -11,8 +11,6 @@ interface ShareFeedback {
 interface QREditorProps {
   settings: QRSettings
   onSettingsChange: (updater: (current: QRSettings) => QRSettings) => void
-  theme: 'light' | 'dark'
-  onThemeToggle: () => void
   onLogoUpload: (file: File) => Promise<void>
   onLogoClear: () => void
   shareBusy: boolean
@@ -21,11 +19,19 @@ interface QREditorProps {
   logoWarning?: string | null
 }
 
+const SIZE_PRESETS = [
+  { id: 'small', label: 'Small', size: 240 },
+  { id: 'medium', label: 'Medium', size: 320 },
+  { id: 'large', label: 'Large', size: 420 },
+] as const
+
+type SizePresetId = (typeof SIZE_PRESETS)[number]['id']
+
+type AdvancedSection = 'dimensions' | 'logo'
+
 const QREditor = ({
   settings,
   onSettingsChange,
-  theme,
-  onThemeToggle,
   onLogoUpload,
   onLogoClear,
   shareBusy,
@@ -34,10 +40,18 @@ const QREditor = ({
   logoWarning,
 }: QREditorProps) => {
   const logoFileInputRef = useRef<HTMLInputElement | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [expandedSection, setExpandedSection] = useState<AdvancedSection>('dimensions')
 
   const handleTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const text = event.target.value
     onSettingsChange((current) => ({ ...current, text }))
+  }
+
+  const applySizePreset = (presetId: SizePresetId) => {
+    const preset = SIZE_PRESETS.find((item) => item.id === presetId)
+    if (!preset) return
+    onSettingsChange((current) => ({ ...current, size: preset.size }))
   }
 
   const handleSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -107,223 +121,324 @@ const QREditor = ({
     await onShare()
   }
 
+  const selectedPreset: SizePresetId | 'custom' = (() => {
+    const match = SIZE_PRESETS.find((preset) => preset.size === settings.size)
+    return match?.id ?? 'custom'
+  })()
+
+  const selectedPresetLabel =
+    selectedPreset === 'custom'
+      ? 'Custom'
+      : SIZE_PRESETS.find((preset) => preset.id === selectedPreset)?.label ?? 'Custom'
+
+  const toggleAdvanced = () => {
+    setShowAdvanced((current) => !current)
+  }
+
+  const handleAccordionToggle = (section: AdvancedSection) => {
+    setExpandedSection(section)
+  }
+
   return (
-    <div className="flex flex-col gap-6" aria-label="QR configuration">
-      <section className="rounded-xl border border-slate-200/60 bg-white/70 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-900/60">
-        <header className="mb-3 flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-8" aria-label="QR configuration panel">
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+            Basics
+          </span>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            What should this QR encode?
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Add the content, pick a size preset, and tune brand colors.
+          </p>
+        </header>
+        <div className="space-y-6">
+          <label className="flex flex-col gap-3">
+            <span className="text-base font-medium text-slate-700 dark:text-slate-200">QR content</span>
+            <textarea
+              className="h-28 resize-none rounded-2xl border-0 bg-white/90 px-5 py-4 text-base text-slate-900 shadow-inner ring-1 ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-accent-500 dark:bg-slate-900/70 dark:text-slate-100 dark:ring-slate-700"
+              value={settings.text}
+              onChange={handleTextChange}
+              aria-label="QR data"
+              placeholder="Paste URL, text, Wi-Fi credentials, or any payload..."
+              required
+            />
+          </label>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-medium text-slate-700 dark:text-slate-200">Size presets</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                {selectedPresetLabel}
+              </span>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {SIZE_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applySizePreset(preset.id)}
+                  className={clsx(
+                    'flex-1 rounded-2xl border border-transparent px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500',
+                    selectedPreset === preset.id
+                      ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/25'
+                      : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-800',
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-base font-medium text-slate-700 dark:text-slate-200">Foreground</span>
+              <div className="flex items-center gap-3 rounded-2xl bg-slate-100/80 px-4 py-3 shadow-inner ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
+                <input
+                  type="color"
+                  value={settings.foregroundColor}
+                  onChange={handleForegroundChange}
+                  aria-label="Foreground color"
+                  className="h-12 w-12 cursor-pointer rounded-xl border-0 bg-transparent"
+                />
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {settings.foregroundColor}
+                </span>
+              </div>
+            </label>
+            <label className="space-y-2">
+              <span className="text-base font-medium text-slate-700 dark:text-slate-200">Background</span>
+              <div className="flex items-center gap-3 rounded-2xl bg-slate-100/80 px-4 py-3 shadow-inner ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
+                <input
+                  type="color"
+                  value={settings.backgroundColor}
+                  onChange={handleBackgroundChange}
+                  aria-label="Background color"
+                  className="h-12 w-12 cursor-pointer rounded-xl border-0 bg-transparent"
+                />
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {settings.backgroundColor}
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <label className="flex items-center gap-3 rounded-2xl bg-slate-100/80 px-5 py-4 shadow-inner ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
+            <input
+              type="checkbox"
+              checked={settings.transparentBackground}
+              onChange={handleTransparentToggle}
+              aria-label="Toggle transparent background"
+              className="h-5 w-5 rounded border-slate-400 text-accent-500 focus:ring-accent-500"
+            />
+            <span className="text-base font-medium text-slate-700 dark:text-slate-200">
+              Transparent background
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <button
+          type="button"
+          onClick={toggleAdvanced}
+          aria-expanded={showAdvanced}
+          aria-controls="advanced-options"
+          className="flex w-full items-center justify-between rounded-2xl bg-slate-100/80 px-5 py-4 text-left text-base font-semibold text-slate-700 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Advanced options
+          <svg
+            className={clsx('h-5 w-5 transition-transform', showAdvanced ? 'rotate-180' : '')}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showAdvanced && (
+          <div
+            id="advanced-options"
+            className="space-y-6 rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80"
+          >
+            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200/70 pb-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:border-slate-800/60 dark:text-slate-500">
+              <button
+                type="button"
+                onClick={() => handleAccordionToggle('dimensions')}
+                className={clsx(
+                  'rounded-full px-3 py-1 text-xs transition',
+                  expandedSection === 'dimensions'
+                    ? 'bg-accent-500 text-white shadow shadow-accent-500/30'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
+                )}
+              >
+                Dimensions
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAccordionToggle('logo')}
+                className={clsx(
+                  'rounded-full px-3 py-1 text-xs transition',
+                  expandedSection === 'logo'
+                    ? 'bg-accent-500 text-white shadow shadow-accent-500/30'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
+                )}
+              >
+                Logo & safety
+              </button>
+            </div>
+
+            {expandedSection === 'dimensions' && (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                      Fine-tune size ({settings.size}px)
+                    </span>
+                    <input
+                      type="range"
+                      min="160"
+                      max="512"
+                      step="8"
+                      value={settings.size}
+                      onChange={handleSizeChange}
+                      aria-valuemin={160}
+                      aria-valuemax={512}
+                      aria-valuenow={settings.size}
+                      aria-label="QR size"
+                      className="accent-accent-500"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                      Quiet zone ({settings.margin}px)
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="64"
+                      step="2"
+                      value={settings.margin}
+                      onChange={handleMarginChange}
+                      aria-valuemin={0}
+                      aria-valuemax={64}
+                      aria-valuenow={settings.margin}
+                      aria-label="QR margin"
+                      className="accent-accent-500"
+                    />
+                  </label>
+                </div>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Error correction</span>
+                  <select
+                    value={settings.ecc}
+                    onChange={handleEccChange}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    {ECC_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            {expandedSection === 'logo' && (
+              <div className="space-y-5">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={launchLogoPicker}
+                    className="flex-1 rounded-xl bg-accent-500 px-4 py-3 text-sm font-semibold text-white shadow shadow-accent-500/40 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  >
+                    Upload logo
+                  </button>
+                  <input
+                    ref={logoFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleLogoFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={onLogoClear}
+                    className="rounded-xl border border-slate-300/70 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-400 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-slate-700/70 dark:bg-slate-900 dark:text-slate-200"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Logo scale ({Math.round(settings.logo.scale * 100)}%)
+                  </span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="0.4"
+                    step="0.01"
+                    value={settings.logo.scale}
+                    onChange={handleLogoScale}
+                    disabled={settings.logo.mode === 'none'}
+                    className="accent-accent-500 disabled:opacity-50"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Corner radius ({settings.logo.cornerRadius}%)
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="40"
+                    step="1"
+                    value={settings.logo.cornerRadius}
+                    onChange={handleLogoCornerRadius}
+                    disabled={settings.logo.mode === 'none'}
+                    className="accent-accent-500 disabled:opacity-50"
+                  />
+                </label>
+
+                {logoWarning && (
+                  <p className="rounded-xl border border-amber-300/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
+                    {logoWarning}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              QR Content
-            </h2>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              Share this configuration
+            </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Enter the data and basic sizing options.
+              Copies a link with all options encoded for easy collaboration.
             </p>
           </div>
           <button
             type="button"
-            onClick={onThemeToggle}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-accent-500 hover:text-accent-600 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-200"
+            onClick={handleShare}
+            disabled={shareBusy}
+            className={clsx(
+              'inline-flex items-center gap-2 rounded-full bg-accent-500 px-5 py-2 text-sm font-semibold text-white shadow shadow-accent-500/30 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 disabled:cursor-not-allowed disabled:opacity-70',
+            )}
           >
-            {theme === 'dark' ? 'Use Light Theme' : 'Use Dark Theme'}
+            {shareBusy ? 'Preparing link…' : 'Copy shareable link'}
           </button>
-        </header>
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-2">
-            <span className="text-sm text-slate-600 dark:text-slate-200">Data</span>
-            <textarea
-              className="min-h-[96px] resize-y rounded-lg border border-slate-300/80 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-accent-500 focus-visible:outline-none dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-100"
-              value={settings.text}
-              onChange={handleTextChange}
-              aria-label="QR data"
-              placeholder="Paste URL, text, or vCard"
-              required
-            />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-200">
-                Size ({settings.size}px)
-              </span>
-              <input
-                type="range"
-                min="160"
-                max="512"
-                step="8"
-                value={settings.size}
-                onChange={handleSizeChange}
-                aria-valuemin={160}
-                aria-valuemax={512}
-                aria-valuenow={settings.size}
-                aria-label="QR size"
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-200">
-                Margin ({settings.margin}px)
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="64"
-                step="2"
-                value={settings.margin}
-                onChange={handleMarginChange}
-                aria-valuemin={0}
-                aria-valuemax={64}
-                aria-valuenow={settings.margin}
-                aria-label="QR margin"
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-200">ECC Level</span>
-              <select
-                value={settings.ecc}
-                onChange={handleEccChange}
-                className="h-10 rounded-lg border border-slate-300/80 bg-white px-3 text-sm text-slate-900 focus-visible:border-accent-500 focus-visible:outline-none dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-100"
-              >
-                {ECC_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
         </div>
-      </section>
-
-      <section className="rounded-xl border border-slate-200/60 bg-white/70 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-900/60">
-        <header className="mb-3">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Appearance</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Pick foreground and background colors.
-          </p>
-        </header>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-300/80 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Foreground
-            </span>
-            <input
-              type="color"
-              value={settings.foregroundColor}
-              onChange={handleForegroundChange}
-              aria-label="Foreground color"
-              className="h-10 w-16 cursor-pointer rounded-md border border-slate-300/80 bg-transparent"
-            />
-          </label>
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-300/80 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Background
-            </span>
-            <input
-              type="color"
-              value={settings.backgroundColor}
-              onChange={handleBackgroundChange}
-              aria-label="Background color"
-              className="h-10 w-16 cursor-pointer rounded-md border border-slate-300/80 bg-transparent"
-            />
-          </label>
-        </div>
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-300/80 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
-          <div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Transparent background
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Useful when compositing the QR code over other artwork.
-            </p>
-          </div>
-          <input
-            type="checkbox"
-            checked={settings.transparentBackground}
-            onChange={handleTransparentToggle}
-            aria-label="Toggle transparent background"
-            className="h-5 w-5 rounded border border-slate-400"
-          />
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-slate-200/60 bg-white/70 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-900/60">
-        <header className="mb-3">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-            Logo (optional)
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Upload a logo and adjust its size and rounding.
-          </p>
-        </header>
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={launchLogoPicker}
-              className="flex-1 rounded-lg border border-slate-300/80 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-accent-500 hover:text-accent-600 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-100"
-            >
-              Upload logo
-            </button>
-            <input
-              ref={logoFileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleLogoFileChange}
-            />
-            <button
-              type="button"
-              onClick={onLogoClear}
-              className="rounded-lg border border-slate-300/80 bg-white px-4 py-3 text-sm text-slate-500 transition hover:border-red-500 hover:text-red-600 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-300"
-            >
-              Clear
-            </button>
-          </div>
-          <label className="flex flex-col gap-2">
-            <span className="text-sm text-slate-600 dark:text-slate-200">
-              Logo scale ({Math.round(settings.logo.scale * 100)}%)
-            </span>
-            <input
-              type="range"
-              min="0.1"
-              max="0.4"
-              step="0.01"
-              value={settings.logo.scale}
-              onChange={handleLogoScale}
-              disabled={settings.logo.mode === 'none'}
-            />
-          </label>
-          <label className="flex flex-col gap-2">
-            <span className="text-sm text-slate-600 dark:text-slate-200">
-              Corner radius ({settings.logo.cornerRadius}%)
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="40"
-              step="1"
-              value={settings.logo.cornerRadius}
-              onChange={handleLogoCornerRadius}
-              disabled={settings.logo.mode === 'none'}
-            />
-          </label>
-          {logoWarning && (
-            <p className="rounded-lg border border-amber-400/60 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
-              {logoWarning}
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/60 bg-white/70 px-4 py-4 dark:border-slate-700/60 dark:bg-slate-900/60">
-        <button
-          type="button"
-          onClick={handleShare}
-          disabled={shareBusy}
-          className={clsx(
-            'inline-flex items-center gap-2 rounded-full border border-accent-500 bg-accent-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 disabled:cursor-not-allowed disabled:opacity-70',
-          )}
-        >
-          {shareBusy ? 'Preparing link…' : 'Copy shareable link'}
-        </button>
         {shareFeedback && (
           <span
             role="status"
