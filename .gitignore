@@ -28,3 +28,6 @@ test-results
 *.sln
 *.sw?
 AGENTS.md
+
+# Backup files
+*_backup.*
