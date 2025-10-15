@@ -27,6 +27,9 @@ type ExportFeedback = {
 
 const AppContent = () => {
   const { theme } = useTheme()
+
+  // Debug: Log theme value to help troubleshoot logo issues
+  console.log('Current theme:', theme)
   const [settings, setSettings] = useState<QRSettings>(defaultSettings)
   const [shareFeedback, setShareFeedback] = useState<ShareFeedback | null>(null)
   const [exportFeedback, setExportFeedback] = useState<ExportFeedback | null>(null)
@@ -255,11 +258,24 @@ const AppContent = () => {
           {/* Header */}
           <header className="text-center mb-12">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <img
-                src={theme === 'dark' ? '/qrgen-dark.png' : '/qrgen-light.png'}
-                alt="qrgen logo"
-                className="h-12 w-auto"
-              />
+              <div className="relative">
+                <img
+                  src="/qrgen.svg"
+                  alt="qrgen logo"
+                  className="h-12 w-auto filter drop-shadow-lg"
+                  style={{
+                    filter: theme === 'dark'
+                      ? 'brightness(0) invert(1) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))'
+                      : 'brightness(0) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
+                  }}
+                  onError={(e) => {
+                    console.error('SVG logo failed to load:', e.currentTarget.src);
+                  }}
+                  onLoad={() => {
+                    console.log('SVG logo loaded successfully');
+                  }}
+                />
+              </div>
               <h1 className={`text-4xl font-bold ${
                 theme === 'dark' ? 'text-white' : 'text-gray-800'
               }`}>
