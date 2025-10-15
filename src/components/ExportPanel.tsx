@@ -85,39 +85,34 @@ const ExportPanel = ({
       : `${PRESET_SIZES[sizePreset]}px`
 
   return (
-    <form className="space-y-6" onSubmit={handleDownload}>
-      <header className="space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-          Export
-        </span>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Ship your QR</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Choose a format and resolution, then download or copy a production-ready image.
+    <form className="space-y-6 glass-panel p-6" onSubmit={handleDownload}>
+      <header className="space-y-2">
+        <h3 className="text-xl font-semibold text-white">Export QR Code</h3>
+        <p className="text-sm text-gray-300">
+          Choose format and quality, then download or copy to clipboard.
         </p>
       </header>
 
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Format</span>
-            <div className="relative">
-              <select
-                value={format}
-                onChange={(event) => handleFormatChange(event.target.value as ExportFormat)}
-                className="h-11 w-full rounded-2xl border border-transparent bg-slate-100/80 px-4 text-sm font-medium text-slate-700 shadow-inner focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
-              >
-                <option value="png">PNG</option>
-                <option value="jpeg">JPG</option>
-                <option value="svg">SVG</option>
-                <option value="webp">WEBP</option>
-              </select>
-            </div>
+            <span className="text-sm font-medium text-gray-300">Format</span>
+            <select
+              value={format}
+              onChange={(event) => handleFormatChange(event.target.value as ExportFormat)}
+              className="h-11 w-full rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-medium text-white backdrop-blur-sm focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            >
+              <option value="png" className="bg-gray-900">PNG</option>
+              <option value="jpeg" className="bg-gray-900">JPG</option>
+              <option value="svg" className="bg-gray-900">SVG</option>
+              <option value="webp" className="bg-gray-900">WEBP</option>
+            </select>
           </label>
 
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Resolution</span>
-              <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+              <span className="text-sm font-medium text-gray-300">Resolution</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-cyan-400">
                 {presetLabel}
               </span>
             </div>
@@ -128,10 +123,10 @@ const ExportPanel = ({
                   type="button"
                   onClick={() => handlePresetClick(preset)}
                   className={clsx(
-                    'flex-1 rounded-2xl border border-transparent px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500',
+                    'flex-1 rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-200',
                     sizePreset === preset
-                      ? 'bg-accent-500 text-white shadow shadow-accent-500/25'
-                      : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-800',
+                      ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent shadow-lg'
+                      : 'border-white/20 text-white/70 hover:border-white/40 hover:text-white hover:bg-white/10',
                   )}
                 >
                   {preset.charAt(0).toUpperCase() + preset.slice(1)}
@@ -145,7 +140,7 @@ const ExportPanel = ({
           <button
             type="submit"
             className={clsx(
-              'inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-3 text-sm font-semibold text-white shadow shadow-accent-500/30 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 disabled:cursor-not-allowed disabled:opacity-70',
+              'flex-1 glass-button glass-button-primary text-white font-semibold',
               busyAction === 'downloading' && 'cursor-wait opacity-70',
             )}
             disabled={busyAction === 'downloading'}
@@ -156,12 +151,12 @@ const ExportPanel = ({
             type="button"
             onClick={handleCopy}
             className={clsx(
-              'inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-200/70 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-accent-500 hover:text-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-200',
+              'flex-1 glass-button text-white font-semibold',
               busyAction === 'copying' && 'cursor-wait opacity-70',
             )}
             disabled={busyAction === 'copying'}
           >
-            {busyAction === 'copying' ? 'Copying…' : 'Copy PNG to clipboard'}
+            {busyAction === 'copying' ? 'Copying…' : 'Copy to Clipboard'}
           </button>
         </div>
 
@@ -170,13 +165,13 @@ const ExportPanel = ({
           onClick={toggleAdvanced}
           aria-expanded={showAdvanced}
           aria-controls="export-advanced"
-          className="flex w-full items-center justify-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-slate-400 dark:hover:text-slate-200"
+          className="flex w-full items-center justify-center gap-2 text-sm font-medium text-gray-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
         >
-          {showAdvanced ? 'Hide' : 'Show'} advanced controls
+          {showAdvanced ? 'Hide' : 'Show'} advanced options
           <svg
-            className={clsx('h-4 w-4 transition-transform', showAdvanced ? 'rotate-180' : '')}
-            viewBox="0 0 24 24"
+            className={clsx('h-4 w-4 accordion-chevron', showAdvanced ? 'rotate' : '')}
             fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
           >
@@ -187,10 +182,10 @@ const ExportPanel = ({
         {showAdvanced && (
           <div
             id="export-advanced"
-            className="space-y-4 rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80"
+            className={clsx('space-y-4 p-5 border border-white/20 rounded-xl bg-white/5 backdrop-blur-sm', showAdvanced && 'accordion-content open')}
           >
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              <span className="text-sm font-medium text-gray-300">
                 Custom resolution ({customSize}px)
               </span>
               <input
@@ -200,55 +195,53 @@ const ExportPanel = ({
                 step={64}
                 value={customSize}
                 onChange={(event) => handleCustomSizeChange(Number(event.target.value))}
-                className="accent-accent-500"
+                className="w-full accent-cyan-400"
               />
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">File name</span>
+              <span className="text-sm font-medium text-gray-300">File name</span>
               <input
                 type="text"
                 value={fileName}
                 onChange={(event) => setFileName(event.target.value)}
-                className="h-11 rounded-2xl border border-transparent bg-slate-100/80 px-4 text-sm font-medium text-slate-700 shadow-inner focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
+                className="h-11 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-medium text-white backdrop-blur-sm focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-400"
                 placeholder="qr-code"
                 required
               />
             </label>
 
-            <label className="flex items-center justify-between gap-3 rounded-2xl bg-slate-100/80 px-5 py-4 shadow-inner ring-1 ring-slate-200 dark:bg-slate-800/70 dark:ring-slate-700">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Transparent background</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Only available for PNG exports.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={transparent}
-                onChange={(event) => setTransparent(event.target.checked)}
-                disabled={format !== 'png'}
-                className="h-5 w-5 rounded border-slate-400 text-accent-500 focus:ring-accent-500 disabled:opacity-50"
-              />
-            </label>
+            {format === 'png' && (
+              <label className="flex items-center justify-between gap-3 p-4 border border-white/20 rounded-xl bg-white/5 backdrop-blur-sm">
+                <div>
+                  <p className="text-sm font-medium text-gray-300">Transparent background</p>
+                  <p className="text-xs text-gray-400">
+                    PNG format with transparent background
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={transparent}
+                  onChange={(event) => setTransparent(event.target.checked)}
+                  className="h-5 w-5 rounded border-white/20 bg-white/10 text-cyan-400 focus:ring-cyan-400 focus:ring-offset-0"
+                />
+              </label>
+            )}
           </div>
         )}
       </div>
 
       {statusMessage && (
-        <p
-          role="status"
-          className={clsx(
-            'text-sm font-medium',
-            statusTone === 'success'
-              ? 'text-emerald-600 dark:text-emerald-300'
-              : statusTone === 'warning'
-                ? 'text-amber-600 dark:text-amber-300'
-                : 'text-rose-600 dark:text-rose-300',
-          )}
-        >
+        <div className={clsx(
+          'p-3 rounded-xl text-sm font-medium toast-enter',
+          statusTone === 'success'
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+            : statusTone === 'warning'
+              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              : 'bg-red-500/20 text-red-400 border border-red-500/30',
+        )}>
           {statusMessage}
-        </p>
+        </div>
       )}
     </form>
   )

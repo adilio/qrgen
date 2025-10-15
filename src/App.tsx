@@ -1,17 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import PanelCard from '@/components/PanelCard'
-import QREditor from '@/components/QREditor'
+import { useEffect, useState, useRef } from 'react'
 import QRPreview from '@/components/QRPreview'
-import ExportPanel from '@/components/ExportPanel'
+import ColorSection from '@/components/ColorSection'
+import ParticleBackground from '@/components/ParticleBackground'
+import Toast from '@/components/Toast'
+import LogoUpload from '@/components/LogoUpload'
+import CollapsibleSection from '@/components/CollapsibleSection'
+import ThemeToggle from '@/components/ThemeToggle'
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
+import { useConfetti } from '@/hooks/useConfetti'
 import type { QRSettings, QRCodeInstance } from '@/lib/qrcode'
 import { defaultSettings, createQrCodeInstance, updateQrCodeInstance } from '@/lib/qrcode'
-import { useDebouncedValue } from '@/lib/hooks'
 import type { ExportFormat } from '@/lib/export'
 import { copyQrToClipboard, downloadQr } from '@/lib/export'
 import { decodeSettingsFromCurrentUrl, encodeSettingsToUrl } from '@/lib/urlState'
-import { fileToDataUrl, withRoundedCorners } from '@/lib/image'
-
-type ThemeMode = 'light' | 'dark'
 
 type ShareFeedback = {
   message: string
@@ -58,43 +59,73 @@ const mergeWithDefaults = (incoming: QRSettings): QRSettings => ({
   },
 })
 
-const getInitialTheme = (): ThemeMode => {
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-const App = () => {
+const AppContent = () => {
+  const { theme } = useTheme()
   const [settings, setSettings] = useState<QRSettings>(defaultSettings)
-  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme)
   const [shareFeedback, setShareFeedback] = useState<ShareFeedback | null>(null)
   const [exportFeedback, setExportFeedback] = useState<ExportFeedback | null>(null)
   const [busyAction, setBusyAction] = useState<'idle' | 'copying' | 'downloading'>('idle')
-  const [logoWarning, setLogoWarning] = useState<string | null>(null)
   const [shareBusy, setShareBusy] = useState(false)
-  const [hydrated, setHydrated] = useState(false)
-
   const [previewNode, setPreviewNode] = useState<HTMLDivElement | null>(null)
-  const qrInstanceRef = useRef<QRCodeInstance | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
+  // Toast system state
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'warning' | 'error' | 'info'
+    visible: boolean
+  }>({ message: '', type: 'success', visible: false })
+
+  const { triggerDownload, triggerShare } = useConfetti()
+
+  const qrInstanceRef = useRef<QRCodeInstance | null>(null)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-expand textarea
+  const adjustTextAreaHeight = () => {
+    const textarea = textAreaRef.current
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto'
+
+      // Calculate new height, but constrain between min and max
+      // Use smaller minimum to fit single line text tightly
+      const minHeight = 28 // Tight single line height
+      const maxHeight = 120 // ~4 rows
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight)
+
+      textarea.style.height = `${newHeight}px`
+    }
+  }
+
+  const showToast = (message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
+    setToast({ message, type, visible: true })
+  }
+
+  // Initialize QR instance
   if (!qrInstanceRef.current) {
     qrInstanceRef.current = createQrCodeInstance(settings)
   }
 
-  const debouncedSettings = useDebouncedValue(settings, 120)
-
   useEffect(() => {
     const decoded = decodeSettingsFromCurrentUrl()
     if (decoded) {
-      setSettings(mergeWithDefaults(decoded))
+      setSettings(prev => ({ ...prev, ...decoded }))
     }
-    setHydrated(true)
   }, [])
 
+  // Simple debounce for QR updates
   useEffect(() => {
-    document.body.classList.remove('light', 'dark')
-    document.body.classList.add(theme)
-  }, [theme])
+    const timer = setTimeout(() => {
+      if (qrInstanceRef.current) {
+        updateQrCodeInstance(qrInstanceRef.current, settings)
+      }
+    }, 300)
 
+    return () => clearTimeout(timer)
+  }, [settings])
+
+  // Update QR instance when preview node is ready
   useEffect(() => {
     if (!previewNode || !qrInstanceRef.current) return
     previewNode.innerHTML = ''
@@ -102,29 +133,29 @@ const App = () => {
   }, [previewNode])
 
   useEffect(() => {
-    if (!qrInstanceRef.current) return
-    updateQrCodeInstance(qrInstanceRef.current, debouncedSettings)
-    const container = previewNode
-    const svg = container?.querySelector('svg')
-    if (svg) {
-      svg.setAttribute('role', 'img')
-      svg.setAttribute('aria-label', `QR code encoding ${debouncedSettings.text.length} characters`)
-    }
-  }, [debouncedSettings, previewNode])
-
-  useEffect(() => {
-    if (!hydrated) return
-    const url = encodeSettingsToUrl(settings)
-    if (url) {
-      window.history.replaceState({}, '', url)
-    }
-  }, [settings, hydrated])
-
-  useEffect(() => {
     if (!shareFeedback) return
     const timeout = window.setTimeout(() => setShareFeedback(null), 4000)
     return () => window.clearTimeout(timeout)
   }, [shareFeedback])
+
+  // Keyboard shortcut for quick copy (Ctrl+C / Cmd+C)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+C or Cmd+C to copy QR when focused on preview
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        const activeElement = document.activeElement
+        const isQRFocused = activeElement?.closest('[aria-label*="QR code"]')
+
+        if (isQRFocused && settings.text.length > 0) {
+          e.preventDefault()
+          handleCopy({ size: 1024, transparent: true })
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [settings.text])
 
   useEffect(() => {
     if (!exportFeedback) return
@@ -132,62 +163,32 @@ const App = () => {
     return () => window.clearTimeout(timeout)
   }, [exportFeedback])
 
+  // Auto-adjust textarea height when text changes
   useEffect(() => {
-    if (settings.logo.mode === 'upload' && settings.logo.scale > 0.4 && settings.ecc !== 'H') {
-      setLogoWarning('Large logos scan best with ECC level "H". Consider switching before export.')
-    } else {
-      setLogoWarning(null)
+    adjustTextAreaHeight()
+  }, [settings.text])
+
+  // Initial height adjustment
+  useEffect(() => {
+    adjustTextAreaHeight()
+  }, [])
+
+  // Auto-select example.com on initial load
+  useEffect(() => {
+    if (textAreaRef.current && settings.text === 'https://example.com') {
+      // Small delay to ensure component is mounted
+      setTimeout(() => {
+        textAreaRef.current?.focus()
+        textAreaRef.current?.setSelectionRange(8, 27) // Select "example.com"
+      }, 100)
     }
-  }, [settings.logo.mode, settings.logo.scale, settings.ecc])
+  }, [])
 
   const handleSettingsChange = (updater: (current: QRSettings) => QRSettings) => {
-    setSettings((current) => {
-      const draft = cloneSettings(current)
-      const next = cloneSettings(updater(draft))
-      if (next.logo.mode === 'none') {
-        next.logo.originalDataUrl = undefined
-        next.logo.processedDataUrl = undefined
-      }
-      return next
-    })
-  }
-
-  const handleThemeToggle = () => {
-    setTheme((mode) => (mode === 'dark' ? 'light' : 'dark'))
-  }
-
-  const processLogoWithRadius = async (rawData: string, cornerRadius: number) =>
-    withRoundedCorners(rawData, cornerRadius)
-
-  const handleLogoUpload = async (file: File) => {
-    try {
-      const rawData = await fileToDataUrl(file)
-      const processed = await processLogoWithRadius(rawData, settings.logo.cornerRadius)
-      setSettings((current) => ({
-        ...current,
-        logo: {
-          ...current.logo,
-          mode: 'upload',
-          originalDataUrl: rawData,
-          processedDataUrl: processed,
-        },
-      }))
-    } catch (error) {
-      console.error(error)
-      setLogoWarning('Unable to embed logo. Please try a smaller image or different format.')
-    }
-  }
-
-  const handleLogoClear = () => {
-    setSettings((current) => ({
-      ...current,
-      logo: {
-        ...current.logo,
-        mode: 'none',
-        originalDataUrl: undefined,
-        processedDataUrl: undefined,
-      },
-    }))
+    setIsUpdating(true)
+    setSettings(updater)
+    // Reset updating state after a short delay to show loading
+    setTimeout(() => setIsUpdating(false), 300)
   }
 
   const handleShare = async () => {
@@ -197,6 +198,7 @@ const App = () => {
       if (!url) return
       window.history.replaceState({}, '', url)
       if (!navigator.clipboard) {
+        showToast('Link ready in the address bar. Clipboard is unavailable in this browser.', 'warning')
         setShareFeedback({
           message: 'Link ready in the address bar. Clipboard is unavailable in this browser.',
           tone: 'warning',
@@ -204,9 +206,12 @@ const App = () => {
         return
       }
       await navigator.clipboard.writeText(url.toString())
+      triggerShare()
+      showToast('🎉 Shareable link copied to clipboard!', 'success')
       setShareFeedback({ message: 'Shareable link copied to clipboard.', tone: 'success' })
     } catch (error) {
       console.error(error)
+      showToast('❌ Share failed. Check clipboard permissions.', 'error')
       setShareFeedback({ message: 'Share failed. Check clipboard permissions.', tone: 'error' })
     } finally {
       setShareBusy(false)
@@ -217,9 +222,11 @@ const App = () => {
     try {
       setBusyAction('copying')
       await copyQrToClipboard(settings, { size, transparent })
+      showToast('📋 QR code copied to clipboard!', 'success')
       setExportFeedback({ message: 'PNG copied to clipboard.', tone: 'success' })
     } catch (error) {
       console.error(error)
+      showToast('❌ Clipboard copy failed. Safari may require user gesture.', 'error')
       setExportFeedback({
         message: 'Clipboard copy failed. Safari may require user gesture.',
         tone: 'error',
@@ -243,9 +250,12 @@ const App = () => {
     try {
       setBusyAction('downloading')
       await downloadQr(settings, { format, size, transparent, fileName })
+      triggerDownload()
+      showToast(`🎉 ${format.toUpperCase()} saved to downloads!`, 'success')
       setExportFeedback({ message: `${format.toUpperCase()} saved to downloads.`, tone: 'success' })
     } catch (error) {
       console.error(error)
+      showToast('❌ Download failed. Try a different format.', 'error')
       setExportFeedback({ message: 'Download failed. Try a different format.', tone: 'error' })
     } finally {
       setBusyAction('idle')
@@ -253,67 +263,238 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 px-4 py-8 text-slate-900 transition-colors dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100 sm:px-6 lg:px-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:gap-10">
-        <header className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">
-              Build a QR that matches your brand
-            </h1>
-            <p className="max-w-xl text-sm text-slate-600 dark:text-slate-400">
-              Tweak essentials up front and dive into advanced tweaks as needed. Every change updates the
-              preview instantly.
+    <div className="relative min-h-screen overflow-hidden" style={{
+      background: theme === 'dark'
+        ? 'linear-gradient(180deg, #1a0a3e 0%, #0a0520 100%)'
+        : 'linear-gradient(180deg, #ffffff 0%, #ffffff 100%)'
+    }}>
+      {/* Theme Toggle */}
+      <ThemeToggle />
+
+      {/* Skip to main content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-cyan-400 text-gray-900 px-4 py-2 rounded-lg font-medium z-50 focus:outline-none focus:ring-2 focus:ring-white"
+      >
+        Skip to main content
+      </a>
+
+      {/* Animated Particle Background */}
+      <div role="presentation" aria-hidden="true">
+        <ParticleBackground />
+      </div>
+
+      <div id="main-content" className="relative min-h-screen px-4 py-8" style={{ zIndex: 10 }} role="main">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <header className="text-center mb-12">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <img
+                src={theme === 'dark' ? '/qrgen-dark.png' : '/qrgen-light.png'}
+                alt="qrgen logo"
+                className="h-12 w-auto"
+              />
+              <h1 className={`text-4xl font-bold ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}>
+                QRgen - QR Code Generator
+              </h1>
+            </div>
+            <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+              Create beautiful QR codes instantly
             </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleThemeToggle}
-            className="self-start rounded-full bg-white/70 p-3 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-slate-800/70 dark:text-slate-200"
-            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          >
-            {theme === 'dark' ? (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            ) : (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
-          </button>
-        </header>
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-10">
-          <PanelCard className="order-2 lg:order-1">
-            <QREditor
-              settings={settings}
-              onSettingsChange={handleSettingsChange}
-              onLogoUpload={handleLogoUpload}
-              onLogoClear={handleLogoClear}
-              shareBusy={shareBusy}
-              onShare={handleShare}
-              shareFeedback={shareFeedback}
-              logoWarning={logoWarning}
-            />
-          </PanelCard>
-          <PanelCard className="order-1 lg:order-2">
-            <div className="flex flex-col gap-8">
+          </header>
+
+          {/* QR Preview */}
+          <div className="flex justify-center mb-8">
+            <div className={`${theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-100/80 border-gray-300/50'} backdrop-blur-sm border rounded-xl p-6`}>
               <QRPreview
                 onContainerReady={setPreviewNode}
                 settings={settings}
-                statusMessage={exportFeedback?.message}
-              />
-              <ExportPanel
-                onCopy={handleCopy}
-                onDownload={(options) => handleDownload(options)}
-                busyAction={busyAction}
-                statusMessage={exportFeedback?.message ?? null}
-                statusTone={exportFeedback?.tone ?? 'success'}
+                isUpdating={isUpdating}
+                onCopy={() => handleCopy({ size: 1024, transparent: true })}
               />
             </div>
-          </PanelCard>
+          </div>
+
+          {/* Main Action Buttons */}
+          <div className="flex justify-center mb-8">
+            <div className="flex flex-wrap gap-6 justify-center">
+              <button
+                onClick={() => handleCopy({ size: 1024, transparent: true })}
+                disabled={!settings.text || busyAction === 'copying'}
+                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold text-lg hover:from-cyan-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-cyan-500/25 min-w-[140px]"
+              >
+                {busyAction === 'copying' ? 'Copying...' : '📋 Copy QR'}
+              </button>
+
+              <button
+                onClick={() => handleDownload({
+                  format: 'png',
+                  size: settings.size,
+                  transparent: true,
+                  fileName: 'qr-code'
+                })}
+                disabled={!settings.text || busyAction === 'downloading'}
+                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-purple-500/25 min-w-[140px]"
+              >
+                {busyAction === 'downloading' ? 'Downloading...' : '💾 Download'}
+              </button>
+
+              <button
+                onClick={handleShare}
+                disabled={shareBusy || !settings.text}
+                className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-lg hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-emerald-500/25 min-w-[140px]"
+              >
+                {shareBusy ? 'Preparing...' : '🔗 Share Link'}
+              </button>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <main className="space-y-8">
+            {/* URL Input - Dynamic */}
+            <section className={`${theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-100/80 border-gray-300/50'} backdrop-blur-sm border rounded-xl p-4`}>
+              <label htmlFor="qr-input" className={`block mb-2 font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Enter URL or Text
+              </label>
+              <textarea
+                ref={textAreaRef}
+                id="qr-input"
+                className={`w-full ${theme === 'dark' ? 'bg-white/10 border-white/20 text-white placeholder-gray-400' : 'bg-white/90 border-gray-300/50 text-gray-900 placeholder-gray-500'} border rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 resize-none overflow-hidden`}
+                value={settings.text}
+                onChange={(e) => {
+                  handleSettingsChange((current) => ({ ...current, text: e.target.value }))
+                  // Adjust height immediately on change for smooth UX
+                  setTimeout(adjustTextAreaHeight, 0)
+                }}
+                placeholder="Enter your URL or text here..."
+                style={{
+                  height: '28px',
+                  minHeight: '28px',
+                  maxHeight: '120px',
+                  lineHeight: '1.4'
+                }}
+                aria-describedby="input-help"
+                onFocus={(e) => {
+                  // Select example.com part when user focuses on the field
+                  if (e.target.value === 'https://example.com') {
+                    // Small timeout to ensure focus is complete
+                    setTimeout(() => {
+                      e.target.setSelectionRange(8, 27) // Select "example.com"
+                    }, 10)
+                  }
+                }}
+                onClick={(e) => {
+                  // Also handle click to select example.com part
+                  if (e.target.value === 'https://example.com') {
+                    setTimeout(() => {
+                      e.target.setSelectionRange(8, 27) // Select "example.com"
+                    }, 10)
+                  }
+                }}
+              />
+              <div className="flex items-center justify-between mt-1">
+                <p id="input-help" className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-300'} text-xs`}>
+                  {settings.text.length} characters • {settings.ecc} error correction
+                </p>
+                {settings.text.length > 100 && (
+                  <p className="text-amber-400 text-xs">
+                    Long text may affect QR scanability
+                  </p>
+                )}
+              </div>
+            </section>
+
+            {/* Colors - Unified Section */}
+            <CollapsibleSection title="Colors & Styles" defaultOpen={false}>
+              <ColorSection
+                settings={settings}
+                onSettingsChange={handleSettingsChange}
+              />
+            </CollapsibleSection>
+
+            {/* Logo Upload - Collapsible */}
+            <CollapsibleSection title="Add Logo" defaultOpen={false}>
+              <LogoUpload
+                logoConfig={settings.logo}
+                onLogoChange={(logo) => handleSettingsChange((current) => ({ ...current, logo }))}
+              />
+            </CollapsibleSection>
+
+            {/* Advanced Options - Collapsible */}
+            <CollapsibleSection title="Size & Options" defaultOpen={false}>
+              <div className="space-y-4">
+                {/* Simple Size Options */}
+                <div>
+                  <label className="block text-white mb-3 text-sm font-medium">QR Code Size</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { name: 'Small', size: 200 },
+                      { name: 'Medium', size: 300 },
+                      { name: 'Large', size: 400 },
+                      { name: 'Extra Large', size: 500 }
+                    ].map((preset) => (
+                      <button
+                        key={preset.size}
+                        onClick={() => handleSettingsChange((current) => ({ ...current, size: preset.size }))}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm transition-all ${
+                          settings.size === preset.size
+                            ? 'border-cyan-400 bg-cyan-400/20 text-white'
+                            : 'border-white/20 hover:border-white/40 text-white/70 hover:text-white'
+                        }`}
+                      >
+                        {preset.name}
+                        <div className="text-xs opacity-70">{preset.size}px</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Error Correction */}
+                <div>
+                  <label className="block text-white mb-3 text-sm font-medium">Error Correction Level</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {['L', 'M', 'Q', 'H'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => handleSettingsChange((current) => ({ ...current, ecc: level as any }))}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm transition-all ${
+                          settings.ecc === level
+                            ? 'border-cyan-400 bg-cyan-400/20 text-white'
+                            : 'border-white/20 hover:border-white/40 text-white/70 hover:text-white'
+                        }`}
+                      >
+                        {level}
+                        <div className="text-xs opacity-70">
+                          {level === 'L' ? 'Low' : level === 'M' ? 'Medium' : level === 'Q' ? 'Quartile' : 'High'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CollapsibleSection>
+          </main>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onComplete={() => setToast(prev => ({ ...prev, visible: false }))}
+      />
     </div>
+  )
+}
+
+const App = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   )
 }
 

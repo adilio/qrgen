@@ -1,6 +1,9 @@
 import QRCodeStyling from 'qr-code-styling'
 import type { DotType, CornerSquareType, CornerDotType } from 'qr-code-styling'
 
+// Re-export types for use in components
+export type { DotType, CornerSquareType, CornerDotType }
+
 export type FillMode = 'solid' | 'gradient'
 
 export interface GradientStop {
@@ -43,6 +46,10 @@ export interface QRSettings {
   transparentBackground: boolean
   logo: LogoConfig
   style: StyleSettings
+  // QR style options (legacy support)
+  dotsType?: DotType
+  cornersSquareType?: CornerSquareType
+  cornersDotType?: CornerDotType
 }
 
 export type QRCodeInstance = QRCodeStyling
@@ -61,7 +68,7 @@ export const defaultSettings: QRSettings = {
     mode: 'none',
     originalDataUrl: undefined,
     processedDataUrl: undefined,
-    scale: 0.2,
+    scale: 0.25,
     cornerRadius: 12,
   },
   style: {
@@ -188,10 +195,22 @@ const buildImageOptions = (logo: LogoConfig, hasImage: boolean) => {
     }
   }
 
-  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.6)
+  // Allow larger logo sizes up to 70%
+  const imageSize = Math.min(Math.max(logo.scale, 0.05), 0.7)
+
+  // Enhanced background hiding for better logo visibility
+  // Hide background dots progressively based on logo size
+  let hideBackgroundDots = false
+  if (logo.scale > 0.5) {
+    hideBackgroundDots = true // Hide completely for very large logos
+  } else if (logo.scale > 0.35) {
+    hideBackgroundDots = true // Hide for medium-large logos
+  } else if (logo.scale > 0.25) {
+    hideBackgroundDots = false // Keep visible for medium logos
+  }
 
   return {
-    hideBackgroundDots: logo.scale > 0.4,
+    hideBackgroundDots,
     imageSize,
     margin: 0,
   }

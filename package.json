@@ -2,7 +2,7 @@
   "name": "qrgen",
   "private": true,
   "version": "0.1.0",
-  "description": "QR code generator for GitHub Pages",
+  "description": "qrgen-qrcodegenerator: Create beautiful QR codes with color, size, ECC, and logo controls",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.3",
     "clsx": "^2.1.1",
     "qr-code-styling": "^1.9.2",
     "react": "^19.1.1",
@@ -26,6 +27,7 @@
     "@eslint/js": "^9.36.0",
     "@playwright/test": "^1.50.0",
     "@tailwindcss/forms": "^0.5.10",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
