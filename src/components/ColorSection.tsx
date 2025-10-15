@@ -256,7 +256,7 @@ const ColorSection = ({ settings, onSettingsChange }: ColorSectionProps) => {
               }`}
             >
               <div className="text-2xl mb-1">{theme.icon}</div>
-              <div className={`text-xs font-medium ${theme === 'dark' ? 'text-white' : 'text-white'}`}>{theme.name}</div>
+              <div className="text-xs font-medium text-white">{theme.name}</div>
               <div className="flex justify-center gap-1 mt-1">
                 <div
                   className="w-3 h-3 rounded border border-white/30"

@@ -24,40 +24,6 @@ type ExportFeedback = {
   tone: 'success' | 'warning' | 'error'
 }
 
-const cloneSettings = (settings: QRSettings): QRSettings => ({
-  ...settings,
-  logo: { ...settings.logo },
-  style: {
-    ...settings.style,
-    gradient: settings.style.gradient
-      ? {
-          ...settings.style.gradient,
-          stops: settings.style.gradient.stops.map((stop) => ({ ...stop })),
-        }
-      : undefined,
-  },
-})
-
-const mergeWithDefaults = (incoming: QRSettings): QRSettings => ({
-  ...defaultSettings,
-  ...incoming,
-  logo: {
-    ...defaultSettings.logo,
-    ...incoming.logo,
-  },
-  style: {
-    ...defaultSettings.style,
-    ...incoming.style,
-    gradient: (() => {
-      const source = incoming.style?.gradient ?? defaultSettings.style.gradient
-      if (!source) return undefined
-      return {
-        ...source,
-        stops: source.stops.map((stop) => ({ ...stop })),
-      }
-    })(),
-  },
-})
 
 const AppContent = () => {
   const { theme } = useTheme()
@@ -378,18 +344,20 @@ const AppContent = () => {
                 aria-describedby="input-help"
                 onFocus={(e) => {
                   // Select example.com part when user focuses on the field
-                  if (e.target.value === 'https://example.com') {
+                  const textarea = e.target as HTMLTextAreaElement
+                  if (textarea.value === 'https://example.com') {
                     // Small timeout to ensure focus is complete
                     setTimeout(() => {
-                      e.target.setSelectionRange(8, 27) // Select "example.com"
+                      textarea.setSelectionRange(8, 27) // Select "example.com"
                     }, 10)
                   }
                 }}
                 onClick={(e) => {
                   // Also handle click to select example.com part
-                  if (e.target.value === 'https://example.com') {
+                  const textarea = e.target as HTMLTextAreaElement
+                  if (textarea.value === 'https://example.com') {
                     setTimeout(() => {
-                      e.target.setSelectionRange(8, 27) // Select "example.com"
+                      textarea.setSelectionRange(8, 27) // Select "example.com"
                     }, 10)
                   }
                 }}
