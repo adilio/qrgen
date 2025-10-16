@@ -447,6 +447,19 @@ html.dark body {
   @apply transition-all duration-200 ease-in-out;
 }
 
+/* Reusable Surface Classes */
+.surface {
+  @apply bg-white/70 backdrop-blur-md border border-zinc-200 shadow-sm rounded-2xl;
+}
+
+.dark .surface {
+  @apply bg-zinc-900/60 border-zinc-800;
+}
+
+.section-title {
+  @apply text-zinc-700 dark:text-zinc-200 font-semibold;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .glass-panel {

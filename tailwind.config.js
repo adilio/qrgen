@@ -15,6 +15,11 @@ export default {
           500: '#2563eb',
           600: '#1d4ed8',
         },
+        brand: {
+          50: '#eef2ff',
+          500: '#6366f1',
+          600: '#5457e0',
+        },
       },
       boxShadow: {
         panel: '0 12px 32px -20px rgba(15, 23, 42, 0.35)',

@@ -253,6 +253,9 @@ const AppContent = () => {
         <ParticleBackground />
       </div>
 
+      {/* White overlay to soften background visuals */}
+      <div className="pointer-events-none fixed inset-0 bg-white/65 dark:bg-zinc-950/30 backdrop-blur-sm" />
+
       <div id="main-content" className="relative min-h-screen px-4 py-8" style={{ zIndex: 10 }} role="main">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -260,7 +263,7 @@ const AppContent = () => {
             <div className="flex items-center justify-center gap-4 mb-4">
               <div className="relative">
                 <img
-                  src="/qrgen.svg"
+                  src={`${import.meta.env.BASE_URL || ''}qrgen.svg`}
                   alt="qrgen logo"
                   className="h-12 w-auto filter drop-shadow-lg"
                   style={{
@@ -276,13 +279,11 @@ const AppContent = () => {
                   }}
                 />
               </div>
-              <h1 className={`text-4xl font-bold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
-              }`}>
+              <h1 className="text-4xl font-bold text-zinc-800 dark:text-zinc-100">
                 QRgen - QR Code Generator
               </h1>
             </div>
-            <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+            <p className="text-zinc-600 dark:text-zinc-300">
               Create beautiful QR codes instantly
             </p>
           </header>
@@ -336,14 +337,14 @@ const AppContent = () => {
           {/* Main Content */}
           <main className="space-y-8">
             {/* URL Input - Dynamic */}
-            <section className={`${theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-100/80 border-gray-300/50'} backdrop-blur-sm border rounded-xl p-4`}>
-              <label htmlFor="qr-input" className={`block mb-2 font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <section className="surface p-5">
+              <label htmlFor="qr-input" className="section-title block mb-2">
                 Enter URL or Text
               </label>
               <textarea
                 ref={textAreaRef}
                 id="qr-input"
-                className={`w-full ${theme === 'dark' ? 'bg-white/10 border-white/20 text-white placeholder-gray-400' : 'bg-white/90 border-gray-300/50 text-gray-900 placeholder-gray-500'} border rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 resize-none overflow-hidden`}
+                className={`w-full ${theme === 'dark' ? 'bg-white/10 border-white/20 text-zinc-100 placeholder-zinc-400' : 'bg-white/90 border-zinc-300/50 text-zinc-900 placeholder-zinc-500'} border rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 resize-none overflow-hidden`}
                 value={settings.text}
                 onChange={(e) => {
                   handleSettingsChange((current) => ({ ...current, text: e.target.value }))
@@ -379,7 +380,7 @@ const AppContent = () => {
                 }}
               />
               <div className="flex items-center justify-between mt-1">
-                <p id="input-help" className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-300'} text-xs`}>
+                <p id="input-help" className="text-zinc-500 dark:text-zinc-400 text-xs">
                   {settings.text.length} characters • {settings.ecc} error correction
                 </p>
                 {settings.text.length > 100 && (
