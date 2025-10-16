@@ -253,8 +253,8 @@ const AppContent = () => {
         <ParticleBackground />
       </div>
 
-      {/* White overlay to soften background visuals */}
-      <div className="pointer-events-none fixed inset-0 bg-white/65 dark:bg-zinc-950/30 backdrop-blur-sm" />
+      {/* White overlay - opaque in light mode, semi-transparent in dark */}
+      <div className="pointer-events-none fixed inset-0 bg-white dark:bg-zinc-950/30 backdrop-blur-sm" />
 
       <div id="main-content" className="relative min-h-screen px-4 py-8" style={{ zIndex: 10 }} role="main">
         <div className="max-w-4xl mx-auto">
