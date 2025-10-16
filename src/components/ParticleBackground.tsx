@@ -16,7 +16,7 @@ const ParticleBackground = () => {
 
     const container = containerRef.current
     const colors = ['pink', 'magenta', 'purple', 'blue', 'cyan', 'deep-purple']
-    const particleCount = 200
+    const particleCount = 200 // Back to 200 particles for more ambient effect
 
     function createParticle(): Particle {
       const particle = document.createElement('div')
@@ -24,8 +24,8 @@ const ParticleBackground = () => {
 
       particle.className = `particle ${colorClass}`
 
-      // Random size (4-10px - bigger and more visible)
-      const size = Math.random() * 6 + 4
+      // Random size (1-3px - much smaller and barely visible)
+      const size = Math.random() * 2 + 1
       particle.style.width = `${size}px`
       particle.style.height = `${size}px`
 

@@ -165,7 +165,7 @@ const ColorSection = ({ settings, onSettingsChange }: ColorSectionProps) => {
   const getCurrentThemes = () => themeMode === 'light' ? LIGHT_THEMES : DARK_THEMES
 
   return (
-    <div className="space-y-4">
+    <div className="surface p-5 space-y-4">
       {/* Current Colors with Click to Pick */}
       <div className="grid grid-cols-2 gap-4">
         <button

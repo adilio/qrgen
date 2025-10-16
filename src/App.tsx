@@ -253,8 +253,8 @@ const AppContent = () => {
         <ParticleBackground />
       </div>
 
-      {/* White overlay - opaque in light mode, semi-transparent in dark */}
-      <div className="pointer-events-none fixed inset-0 bg-white dark:bg-zinc-950/30 backdrop-blur-sm" />
+      {/* Prominent white overlay for strong surface definition */}
+      <div className="pointer-events-none fixed inset-0 bg-white dark:bg-zinc-950/20 backdrop-blur-md" />
 
       <div id="main-content" className="relative min-h-screen px-4 py-8" style={{ zIndex: 10 }} role="main">
         <div className="max-w-4xl mx-auto">
@@ -290,7 +290,7 @@ const AppContent = () => {
 
           {/* QR Preview */}
           <div className="flex justify-center mb-8">
-            <div className={`${theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-100/80 border-gray-300/50'} backdrop-blur-sm border rounded-xl p-6`}>
+            <div className="surface p-6">
               <QRPreview
                 onContainerReady={setPreviewNode}
                 settings={settings}
@@ -302,35 +302,37 @@ const AppContent = () => {
 
           {/* Main Action Buttons */}
           <div className="flex justify-center mb-8">
-            <div className="flex flex-wrap gap-6 justify-center">
-              <button
-                onClick={() => handleCopy({ size: 1024, transparent: true })}
-                disabled={!settings.text || busyAction === 'copying'}
-                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold text-lg hover:from-cyan-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-cyan-500/25 min-w-[140px]"
-              >
-                {busyAction === 'copying' ? 'Copying...' : '📋 Copy QR'}
-              </button>
+            <div className="surface p-4">
+              <div className="flex flex-wrap gap-6 justify-center">
+                <button
+                  onClick={() => handleCopy({ size: 1024, transparent: true })}
+                  disabled={!settings.text || busyAction === 'copying'}
+                  className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold text-lg hover:from-cyan-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-cyan-500/25 min-w-[140px]"
+                >
+                  {busyAction === 'copying' ? 'Copying...' : '📋 Copy QR'}
+                </button>
 
-              <button
-                onClick={() => handleDownload({
-                  format: 'png',
-                  size: settings.size,
-                  transparent: true,
-                  fileName: 'qr-code'
-                })}
-                disabled={!settings.text || busyAction === 'downloading'}
-                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-purple-500/25 min-w-[140px]"
-              >
-                {busyAction === 'downloading' ? 'Downloading...' : '💾 Download'}
-              </button>
+                <button
+                  onClick={() => handleDownload({
+                    format: 'png',
+                    size: settings.size,
+                    transparent: true,
+                    fileName: 'qr-code'
+                  })}
+                  disabled={!settings.text || busyAction === 'downloading'}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-purple-500/25 min-w-[140px]"
+                >
+                  {busyAction === 'downloading' ? 'Downloading...' : '💾 Download'}
+                </button>
 
-              <button
-                onClick={handleShare}
-                disabled={shareBusy || !settings.text}
-                className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-lg hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-emerald-500/25 min-w-[140px]"
-              >
-                {shareBusy ? 'Preparing...' : '🔗 Share Link'}
-              </button>
+                <button
+                  onClick={handleShare}
+                  disabled={shareBusy || !settings.text}
+                  className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-lg hover:from-emerald-600 hover:to-teal-600 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-emerald-500/25 min-w-[140px]"
+                >
+                  {shareBusy ? 'Preparing...' : '🔗 Share Link'}
+                </button>
+              </div>
             </div>
           </div>
 
