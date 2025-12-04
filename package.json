@@ -20,8 +20,8 @@
     "canvas-confetti": "^1.9.3",
     "clsx": "^2.1.1",
     "qr-code-styling": "^1.9.2",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react": "^19.1.2",
+    "react-dom": "^19.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
